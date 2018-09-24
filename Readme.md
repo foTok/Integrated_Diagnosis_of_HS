@@ -1,11 +1,20 @@
 This project combines Model-based (MBD) and Data-driven (DDD) methods to diagnose hybrid systems (HS).
 
 # Framework
-HS ---> Simple HSs ---> normal Hybrid Estimation(MBD) ---> consistent? ---> Normal or Identified Faults
-                                ^                               |       Yes
-                                |                               | No
-                                |                               |
-                         Possible Faults <-- -Classifier(DDD)<---
+
+```flow
+st=>start: Hybrid System
+ed=>end: Normal or Identified Faults
+decom=>operation: Decompose
+he=>operation: Hybrid Estimate
+class=>operation: Classifier
+
+consis=>condition: Consistent?
+
+st->decom->he->consis
+consis(yes)->ed
+consis(no)->class->he
+```
 
 The original hybrid system is deomposed into several simple hybrid systems. A MBD method is used to track
 the states. If an inconsistency is found, there must be a fault. A classifier (DDD) is employed to estimate
