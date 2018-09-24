@@ -35,16 +35,20 @@ class QModel:
         self._para_fault_variables  = []
         #All variables
         self._variables             = []
+        #time-varying flag
+        #If a variable v is time varying, self._tvf[v] = True.
+        #But False by default.
+        self._tvf                   = {}
         #Qualitative equations
         # e1: (x1, x2, x3, sigma, f1)
-        self._qequations = {}
+        self._qequations            = {}
         # if warning is True, warning information will be printed
         self._warning = warning
 
 #######################################################################
 ##############Add variables and qeuations to define the model##########
 #######################################################################
-    def add_an_unknown_variable(self, name):
+    def add_an_unknown_variable(self, name, flag):
         '''
         Add an unknown variable.
         If it exists, IGNORE
@@ -53,6 +57,7 @@ class QModel:
         if name not in self._variables:
             self._unknown_variables.append(name)
             self._variables.append(name)
+            self._tvf[name] = (True if flag==True else False)
         elif self._warning:
             print('{} is already in, IGNORE this time.', name)
 
@@ -92,17 +97,20 @@ class QModel:
         elif self._warning:
             print('{} is already in, IGNORE this time.', name)
 
-    def add_variables(self, names, vtype):
+    def add_variables(self, names, vtype, tvf=None):
         '''
         Add unknown variables
         @para names, a list of strings
         @para vtype, {'un', 'nm', 'fm', 'pf'}
         '''
         if vtype == 'un':
-            for name in names:
-                self.add_an_unknown_variable(name)
+            if tvf is None:
+                for name in names:
+                    self.add_an_unknown_variable(name, False)
+            else:
+                for name, flag in zip(names, tvf):
+                    self.add_an_unknown_variable(name, flag)
         elif vtype == 'nm':
-            for name in names:
                 self.add_a_nmode_variable(name)
         elif vtype == 'fm':
             for name in names:
@@ -245,6 +253,66 @@ class QModel:
 #######################################################################
 ##############                      BIPs                     ##########
 #######################################################################
+# BIPs are used to select proper MSOs to diagnose faults.
+# The basic idea is to pick out the simples MSOs that can detect all faults
+# and isolate them as many as possible.
+#
+#          cost0 = log2(Π{(2^|MSOi|σ)×2^|MSOi|fp×(2^|MSOi|integ)}×Π(2^|UIj|))
+#          cost  = ∑{|MSOi|σ+|MSOi|fp+|MSOi|integ} + ∑|UIj|
+#
+# where σ means discrete Boolean mode variable
+#       fp means discretized fault parameter variables
+#       integ means time-varying variables
+#       UI is a minimal unisolated set
+
+    def _vars(self, qe):
+        '''
+        Return different variables in qe
+        @para qe is the name of a qequation
+        @return nmode_var, set of normal mode variables in qe
+        @return fmode_var, set of fault mode variables in qe
+        @return pf_var, set of parameter fault variables in qe
+        @return nmode_var, set of time-varying variables in qe
+        '''
+        nmode_var = set()
+        fmode_var = set()
+        pf_var   = set()
+        tv_var   = set()
+        e        = self._qequations[qe]
+        #unknown variables
+        for v in self._unknown_variables:
+            if (v in e) and self._tvf[v]:
+                tv_var.add(v)
+        #normal mode variables
+        for v in self._normal_mode_variables:
+            if v in e:
+                nmode_var.add(v)
+        #fault mode variables
+        for v in self._fault_mode_variables:
+            if v in e:
+                fmode_var.add(v)
+        #parameter fault variables
+        for v in self._para_fault_variables:
+            if v in e:
+                pf_var.add(v)
+        return nmode_var, fmode_var, pf_var, tv_var
 
 
+    def _cost_and_pfaults(self, MSO):
+        '''
+        Compute the cost for the MSO and the detected parameter faults.
+        
+                cost_MSO = |MSO|σ + |MSO|integ + |MSO|fp
 
+        @para MSO is a set of qequation names.
+        @return cost is the cost for this MSO only.
+        @return pf is the set of fault names of parameter faults
+        '''
+        var = set()
+        pf  = set()
+        for e in MSO:
+            _nmode, _fmode, _pf, _tv = self._vars(e)
+            var = var | _nmode | _fmode | _pf | _tv
+            pf  = pf | _pf
+        cost = len(var)
+        return cost, pf
