@@ -1,5 +1,5 @@
 '''
-Test file for C130FS
+Simulation file for C130FS
 '''
 from Systems.C130FS import C130FS
 

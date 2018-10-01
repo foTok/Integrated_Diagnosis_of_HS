@@ -53,6 +53,7 @@ class QModel:
         Add an unknown variable.
         If it exists, IGNORE
         @para name, a string
+        @para flag, if the variable is time-varying.
         '''
         if name not in self._variables:
             self._unknown_variables.append(name)
@@ -111,6 +112,7 @@ class QModel:
                 for name, flag in zip(names, tvf):
                     self.add_an_unknown_variable(name, flag)
         elif vtype == 'nm':
+            for name in names:
                 self.add_a_nmode_variable(name)
         elif vtype == 'fm':
             for name in names:
@@ -298,7 +300,7 @@ class QModel:
         return nmode_var, fmode_var, pf_var, tv_var
 
 
-    def _cost_and_pfaults(self, MSO):
+    def cost_and_pfaults(self, MSO):
         '''
         Compute the cost for the MSO and the detected parameter faults.
         
