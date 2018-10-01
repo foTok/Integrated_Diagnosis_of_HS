@@ -72,7 +72,7 @@ class C130FS:
         assert sim > 0
         self._sim_rate = sim
         self._basis = 60*10 / sim  # (second) / simr
-        self._br_type = 'per2c' #percentage to minimal capacity(per2c), percentage to average(per2a), gallons(gal)
+        self._br_type = 'per2c' #percentage of minimal capacity(per2c), percentage of the current average fuel(per2a), gallons(gal)
         self._balance_begin = 0.10 * (1 if self._br_type!='gal' else 100)
         self._balance_end   = 0.05 * (1 if self._br_type!='gal' else 100)
         self._pump_open_line = 10
@@ -83,7 +83,7 @@ class C130FS:
         # we don't consider the change of pressure, the fuel
         # will reduce 1/4 every 10 min (by the default basis).
         # So each second, only 1/(4*_basis) fule goes out.
-        self._R = np.array([1]*6) * self._basis
+        self._R = np.array([2]*6) * self._basis
         # fuel demand per second
         # The parameters are from the slides for 10 min.
         # If we need 60 pounds in 10 min, only 60/_basis pounds
@@ -97,13 +97,16 @@ class C130FS:
         # But the default values are zero or inf, no need
         # to add them. We will use _basis when inject a fault.
         self._f_v = [0]*6
+        self._f_vb = [0]*6
         # Leakage fault for tanks. inf by default.
         # Fault interval: [100, 200]. BE effected by _basis
         self._f_t = [float('inf')]*6
+        self._f_tb = [float('inf')]*6
         # No feed engouh fuel fault for pumps. 0 by default.
         # Fault interval: [0.1, 0.3]
         # The fault parameters will NOT be effected by _basis.
         self._f_p = [0]*6
+        self._f_pb = [0]*6
         
         ########### System Discrete Mode Parameters #########
         # Inner mode for valves
@@ -227,21 +230,29 @@ class C130FS:
             self._f2b[0+index] = f_t
             if f_t==3:
                 assert f_m is not None
-                self._f_v[index] = f_m * self._basis
+                self._f_vb[index] = f_m * self._basis
         elif c_t == 'pump':
             assert f_t==1 or f_t==2
             self._f2b[6+index] = f_t
             if f_t==2:
                 assert f_m is not None
                 assert 0< f_m < 1
-                self._f_p[index] = f_m
+                self._f_pb[index] = f_m
         elif c_t == 'tank':
             assert f_t==1
             assert f_m is not None
             self._f2b[12+index] = f_t
-            self._f_t[index] = f_m * self._basis
+            self._f_tb[index] = f_m * self._basis
         else:
             raise TypeError('Unknown fault type')
+
+    def _try2active_pf(self):
+        '''
+        Try to active a parameter fault.
+        '''
+        self._f_v[:] = self._f_vb[:]
+        self._f_p[:] = self._f_pb[:]
+        self._f_t[:] = self._f_tb[:]
 
     # For all valves
     def _valve_control(self, br, f, c_mode):
@@ -252,7 +263,10 @@ class C130FS:
         @pare c_mode, current mode
         @return n_mode, next mode
         '''
-        assert f==0 or f==1 or f==2
+        assert f==0 or f==1 or f==2 or f==3
+        # For parameter fault, _valve_control ignore it.
+        if f==3:
+            f = 0
         # br ==> np.array([0.12]) or np.array([0.12, 0.13])
         if isinstance(br, float):
             br = np.array([br])
@@ -294,7 +308,10 @@ class C130FS:
         @para f, fault id, 0~no fault, 1~failure
         @return n_mode, next mode
         '''
-        assert f==0 or f==1
+        assert f==0 or f==1 or f==2
+        # For parameter fault, ignore here.
+        if f==2:
+            f = 0
         # Mode not change by default
         n_mode = c_mode
         # When c_mode is a fault mode, because of 'n_mode=c_mode', 
@@ -346,7 +363,10 @@ class C130FS:
         @para c_mode, the current mode of the auxiliary tank
         @return n_mode, the next mode
         '''
-        assert f==0 or f==1
+        assert f==0 or f==1 or f==2
+        # For parameter fault, ignore here
+        if f==2:
+            f = 0
         # Mode not change by default
         n_mode = c_mode
         if c_mode == mode_p.open:
@@ -407,6 +427,7 @@ class C130FS:
         # Inject a fault
         if self._i > self._fi:
             self._f2[:] = self._f2b[:]
+            self._try2active_pf()
         # Balance rates
         tank = self._tank[self._i]
         if self._br_type == 'per2c':
@@ -502,15 +523,25 @@ class C130FS:
         # Store them
         self._sigma_v.append(sigma_v)
         self._sigma_p.append(sigma_p)
-        # v value
-        v = 0
-        for i in range(n):
-            v += tank[i]*sigma_v[i] / (self._R[i] + self._f_v[i])
-        v = v / sum(sigma_v) if sum(sigma_v)!=0 else 0
+        # R
+        R_v = self._R + np.array(self._f_v)
+        if sum(sigma_v)==0:
+            R = float('inf')
+        else:
+            R = 0
+            for i in range(n):
+                R = R + (1/R_v[i])*sigma_v[i]
+            R = 1/R
         # Valve i
         valve = [0]*n
-        for i in range(n):
-            valve[i] = sigma_v[i] * (v - tank[i] / (self._R[i] + self._f_v[i]))
+        # In the else brach, valve[:]=0 by default. So, ignored.
+        if R!=float('inf'):
+            for i in range(n):
+                # In the else branch, valve[i]=0 by default. So, ignored.
+                if sigma_v[i]!=0:
+                    for k in range(n):
+                        valve[i] = valve[i] + ((tank[k]-tank[i])/R_v[k] if sigma_v[k]==1 else 0)
+                    valve[i] = valve[i] * R / R_v[i]
         # Pump i
         pump = [0]*n
         for i in range(n-2):# For pump1~pump4

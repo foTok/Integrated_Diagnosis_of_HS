@@ -1,8 +1,7 @@
 '''
-Test file
+Test file for MSO
 '''
 from Decomposer.QHS import QModel
-from Systems.C130FS import C130FS
 
 m = QModel()
 m.add_variables(['x1', 'x2', 'x3', 'x4'], 'un')
@@ -23,12 +22,3 @@ for i in range(n):
     for j in range(i+1, n):
         r = r or (MSO[i]==MSO[j])
 print("r =", r)
-
-c130fs = C130FS()
-c130fs.inject_fault('valve', 1, 4000, 2)
-c130fs.run()
-c130fs.show_tanks()
-c130fs.show_pumps()
-c130fs.show_valves()
-c130fs.show_balance()
-print('DONE')
