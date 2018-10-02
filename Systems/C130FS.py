@@ -525,23 +525,27 @@ class C130FS:
         self._sigma_p.append(sigma_p)
         # R
         R_v = self._R + np.array(self._f_v)
-        if sum(sigma_v)==0:
-            R = float('inf')
-        else:
+        T = 0
+        if sum(sigma_v)!=0:
             R = 0
             for i in range(n):
-                R = R + (1/R_v[i])*sigma_v[i]
+                R = R + sigma_v[i]/R_v[i]
+                T = T + sigma_v[i]*tank[i]/R_v[i]
             R = 1/R
+            T = T*R
         # Valve i
         valve = [0]*n
         # In the else brach, valve[:]=0 by default. So, ignored.
-        if R!=float('inf'):
+        # if R!=float('inf'):
+        #     for i in range(n):
+        #         # In the else branch, valve[i]=0 by default. So, ignored.
+        #         if sigma_v[i]!=0:
+        #             for k in range(n):
+        #                 valve[i] = valve[i] + ((tank[k]-tank[i])/R_v[k] if sigma_v[k]==1 else 0)
+        #             valve[i] = valve[i] * R / R_v[i]
+        if T!=0:
             for i in range(n):
-                # In the else branch, valve[i]=0 by default. So, ignored.
-                if sigma_v[i]!=0:
-                    for k in range(n):
-                        valve[i] = valve[i] + ((tank[k]-tank[i])/R_v[k] if sigma_v[k]==1 else 0)
-                    valve[i] = valve[i] * R / R_v[i]
+                valve[i] = sigma_v[i]*(T - tank[i])/R_v[i]
         # Pump i
         pump = [0]*n
         for i in range(n-2):# For pump1~pump4
