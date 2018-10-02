@@ -5,7 +5,7 @@ from Decomposer.QHS import QModel
 
 m = QModel()
 # Add unknown variables
-m.add_variables(['R', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
+m.add_variables(['T', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
                  'p1', 'p2', 'p3', 'p4', 'p5', 'p6', \
                  't1', 't2', 't3', 't4', 't5', 't6'], 'un',\
                  [False, False, False, False, False, False, False, \
@@ -25,13 +25,13 @@ m.add_qequations(['ev0', 'ev1', 'ev2', 'ev3', 'ev4', 'ev5', 'ev6', \
                   'ep1', 'ep2', 'ep3', 'ep4', 'ep5', 'ep6', \
                   'et1', 'et2', 'et3', 'et4', 'et5', 'et6', \
                   'eo1', 'eo2', 'eo3', 'eo4', 'eo5', 'eo6'],
-                [['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v1', 't1', 't2', 't3', 't4', 't5', 't6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v2', 't1', 't2', 't3', 't4', 't5', 't6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v3', 't1', 't2', 't3', 't4', 't5', 't6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v4', 't1', 't2', 't3', 't4', 't5', 't6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v5', 't1', 't2', 't3', 't4', 't5', 't6'],
-                 ['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'R', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6', 'v6', 't1', 't2', 't3', 't4', 't5', 't6'],
+                [['sv1', 'sv2', 'sv3', 'sv4', 'sv5', 'sv6', 'T', 'fv1', 'fv2', 'fv3', 'fv4', 'fv5', 'fv6'],
+                 ['T',   'sv1', 'v1', 'fv1'],
+                 ['T',   'sv2', 'v2', 'fv2'],
+                 ['T',   'sv3', 'v3', 'fv3'],
+                 ['T',   'sv4', 'v4', 'fv4'],
+                 ['T',   'sv5', 'v5', 'fv5'],
+                 ['T',   'sv6', 'v6', 'fv6'],
                  ['sp1', 'fp1', 'p1'],
                  ['sp2', 'fp2', 'p2'],
                  ['sp3', 'fp3', 'p3'],
