@@ -299,8 +299,24 @@ class QModel:
                 pf_var.add(v)
         return nmode_var, fmode_var, pf_var, tv_var
 
+    def _feature_vector(self, MSOs):
+            '''
+            @para MSOs, a list of MSOs
+            @return fv, a dict.
+            '''
+            n = len(MSOs)
+            fv = {}
+            for f in self._para_fault_variables:
+                ffv = [0]*n # Fault fv
+                for MSO, i in zip(MSOs, range(n)):
+                    for e in MSO:
+                        if f in self._qequations[e]:
+                            ffv[i] = 1
+                fv[f] = tuple(ffv)
+            return fv
 
-    def cost_and_pfaults(self, MSO):
+
+    def cost_MSO(self, MSO):
         '''
         Compute the cost for the MSO and the detected parameter faults.
         
@@ -308,13 +324,32 @@ class QModel:
 
         @para MSO is a set of qequation names.
         @return cost is the cost for this MSO only.
-        @return pf is the set of fault names of parameter faults
         '''
         var = set()
-        pf  = set()
         for e in MSO:
             _nmode, _fmode, _pf, _tv = self._vars(e)
             var = var | _nmode | _fmode | _pf | _tv
-            pf  = pf | _pf
         cost = len(var)
-        return cost, pf
+        return cost
+
+    def cost_isolate(self, MSOs):
+        '''
+        Compute the cost of MSOs based on isolation criteria.
+        @para MSOs, a list of MSOs
+        @return cost, a number
+        '''
+        
+        # Make sure MSOs is a list
+        MSOs = list(MSOs)
+        split_dict = {}
+        fv = self._feature_vector(MSOs)
+        for f in fv:
+            if fv[f] in split_dict:
+                split_dict[fv[f]].add(f)
+            else:
+                split_dict[fv[f]] = {f}
+        cost = 0
+        for v in split_dict:
+            cost = cost + len(split_dict[v]) - 1
+        return cost
+
