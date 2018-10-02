@@ -27,7 +27,6 @@ sp1, sp2, sp3, sp4, sp5, sp6 = \
 symbols('sv1, sv2, sv3, sv4, sv5, sv6, \
          sp1, sp2, sp3, sp4, sp5, sp6')
 
-#TODO
 # Equations
 ev0 = Eq(1/(sv1/_R[0] + sv2/_R[1] +sv3/_R[2] +sv4/_R[3] +sv5/_R[4] +sv6/_R[5])* \
          (sv1*t1_/_R[0] + sv2*t2_/_R[1] + sv3*t3_/_R[2] + sv4*t4_/_R[3] + sv5*t5_/_R[4] + sv6*t6_/_R[5]), T)
@@ -50,6 +49,6 @@ et4 = Eq(t4_+v4-p4, t4)
 et5 = Eq(t5_+v5-p5, t5)
 et6 = Eq(t6_+v6-p6, t6)
 
-r = solve([ev4, ev6, ep4, ep6, et4, et6], (t6))
+r = solve([ev0, ev1, ep1, et1], (t1, v1, p1, T))
 print(r)
 print('DONE')
