@@ -1,6 +1,10 @@
 '''
 Decomposition file for C130FS
 '''
+import os
+import sys
+rootpath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0,rootpath)
 from Decomposer.QHS import QModel
 
 m = QModel()

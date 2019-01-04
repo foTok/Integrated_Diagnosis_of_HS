@@ -4,7 +4,7 @@ The file should be renamed and used to compute all the residuals later.
 '''
 
 import numpy as np
-from sympy import *
+from sympy import solve, symbols, Eq
 
 
 _basis = 60*10

@@ -1,7 +1,11 @@
 '''
 Simulation file for C130FS
 '''
-from Systems.C130FS import C130FS
+import os
+import sys
+rootpath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0,rootpath)
+from Systems.C130FS.C130FS import C130FS
 
 c_t = input('Component type {valve, pump, tank}:')
 if c_t != 'no':
