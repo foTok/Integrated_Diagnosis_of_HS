@@ -1,3 +1,4 @@
 /.vscode
 /Decomposer/__pycache__
 /Systems/__pycache__
+*.pyc
