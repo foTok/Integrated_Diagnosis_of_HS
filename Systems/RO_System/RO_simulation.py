@@ -24,6 +24,8 @@ class RO:
     C_brine = 8.0 # m^5/N
     p_fp    = 1.0 # N/m^2
     p_rp    = 160.0 # N/m^2
+    # modes
+    modes = ['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']
     # states
     states  = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # obs
@@ -31,13 +33,18 @@ class RO:
 
     def __init__(self, step_len=1.0):
         self.step_len   = step_len
+        # fault time and type
+        self.fault_time = None
+        self.fault_type = None
+        self.fault_magnitude = None
         # fault parameters
         self.f_f    = 0
         self.f_r    = 0
         self.f_m    = 0
         # discrete modes
-        self.sigma1 = None
-        self.sigma2 = None
+        self.mode   = 0
+        self.sigma1 = 1
+        self.sigma2 = 0
         # continous states
         self.inital_states = {'q_fp':0, 'q_rp':0, 'p_tr':0, 'p_memb':0, 'e_Cbrine':0, 'e_Ck': 0}
         self.q_fp   = 0
@@ -51,10 +58,6 @@ class RO:
         self.states = []
         self.para_faults    = []
         self.x  = []
-        # how to transit
-        self.t = 'state'
-        # tmp
-        self.tmp = 0
 
     def init(self, states):
         '''
@@ -78,51 +81,73 @@ class RO:
                 raise RuntimeError('Unknown States')
         self.inital_states = states
     
-    def set_trans_mode(self, tm):
-        self.t = tm
+    def insert_fault(self, fault_type, fault_time, fault_magnitude=None):
+        self.fault_time = fault_time
+        if fault_type=='s_normal' or fault_type==3:
+            self.fault_type = 3
+        elif fault_type=='s_pressure' or fault_type==4:
+            self.fault_type = 4
+        elif fault_type=='s_reverse' or fault_type==5:
+            self.fault_type = 5
+        else:
+            assert fault_type=='f_f' or fault_type=='f_r' or fault_type=='f_m'
+            self.fault_type = fault_type
+            self.fault_magnitude = fault_magnitude
+
+    def set_fault(self):
+        if self.fault_type==3:
+            self.mode = 3
+        elif self.fault_type==4:
+            self.mode = 4
+        elif self.fault_type==5:
+            self.mode = 5
+        elif self.fault_type == 'f_f':
+            self.f_f = self.fault_magnitude
+        elif self.fault_type == 'f_r':
+            self.f_r = self.fault_magnitude
+        elif self.fault_type == 'f_m':
+            self.f_m = self.fault_magnitude
+        else:
+            raise RuntimeError('Unknown Fault')
 
     def run(self, t):
         i = 1
+        has_set_fault = False
         while i*self.step_len < t:
             i += 1
+            if self.fault_time is not None and not has_set_fault and i*self.step_len > self.fault_time:
+                self.set_fault()
+                has_set_fault = True
             self.mode_step(i)
             self.state_step(self.step_len)
 
     def mode_step(self, i):
-        if self.sigma1 is None or self.sigma2 is None:
+        h1 = 28.6770
+        h2 = 17.2930
+        h3 = 0.0670
+        if self.mode==0: # normal
+            if self.p_memb > h1:
+                self.mode = 1
+                self.sigma1, self.sigma2 = 0, 1
+        elif self.mode==1: # pressure
+            if self.p_memb < h2:
+                self.mode = 2
+                self.sigma1, self.sigma2 = 0, 0
+        elif self.mode==2: # reverse
+            if self.p_memb < h3:
+                self.mode = 0
+                self.sigma1, self.sigma2 = 1, 0
+                self.e_Cbrine = self.inital_states['e_Cbrine']
+                self.e_Ck = self.inital_states['e_Ck']
+        elif self.mode==3: # s_normal
             self.sigma1, self.sigma2 = 1, 0
-        if self.t == 'state':
-            h1 = 28.6770
-            h2 = 17.2930
-            h3 = 0.0670
-            if self.sigma1==1 and self.sigma2==0: # mode 1
-                if self.p_memb > h1:
-                    self.sigma1, self.sigma2 = 0, 1
-            elif self.sigma1==0 and self.sigma2==1: # mode 2
-                if self.p_memb < h2:
-                    self.sigma1, self.sigma2 = 0, 0
-            elif self.sigma1==0 and self.sigma2==0: # mode 3
-                if self.p_memb < h3:
-                    self.sigma1, self.sigma2 = 1, 0
-                    self.e_Cbrine = self.inital_states['e_Cbrine']
-                    self.e_Ck = self.inital_states['e_Ck']
-            else:
-                raise RuntimeError('Unknown Mode.')
-        elif self.t == 'time':
-            if (i-self.tmp)*self.step_len > 33:
-                self.tmp = i
-                if self.sigma1==1 and self.sigma2==0: # mode 1
-                    self.sigma1, self.sigma2 = 0, 1
-                elif self.sigma1==0 and self.sigma2==1: # mode 2
-                    self.sigma1, self.sigma2 = 0, 0
-                elif self.sigma1==0 and self.sigma2==0: # mode 3
-                    self.sigma1, self.sigma2 = 1, 0
-                    self.e_Cbrine = self.inital_states['e_Cbrine']
-                    self.e_Ck = self.inital_states['e_Ck']
-                else:
-                    raise RuntimeError('Unknown Mode.')
+        elif self.mode==4: # s_pressure
+            self.sigma1, self.sigma2 = 0, 1
+        elif self.mode==5: # s_reverse
+            self.sigma1, self.sigma2 = 0, 0
         else:
-            raise RuntimeError('Unknown Trans Mode.')
+            raise RuntimeError('Unknown Mode.')
+        self.modes.append(self.mode)
 
     def state_step(self, step_len):
         # e_RO20 in Chapter_13
@@ -165,7 +190,7 @@ class RO:
         # e_RO6
         e_Ck    = self.e_Ck + step_len* \
                 self.q_rp*(6*RO.C_brine + 0.1)/ (1.667e-8 * RO.C_k)
-        
+
         # save & update
         self.states.append([q_fp, p_tr, q_rp, p_memb, e_Cbrine, e_Ck])
         self.para_faults.append([self.f_f, self.f_r, self.f_m])
@@ -216,12 +241,6 @@ class RO:
 
         return [df_fp, dp_tr, df_rp, dp_mem, de_Cbrine, de_Ck]
 
-        # save & update
-        # self.states.append([df_fp, dp_tr, df_rp, dp_mem, de_Cbrine, de_Ck])
-        # self.para_faults.append([self.f_f, self.f_r, self.f_m])
-        # self.x.append((0 if not self.x else self.x[-1]) + step_len)
-        # self.q_fp, self.p_tr, self.q_rp, self.p_memb, self.e_Cbrine, self.e_Ck = df_fp, dp_tr, df_rp, dp_mem, de_Cbrine, de_Ck
-
     def np_modes(self):
         return np.array(self.modes)
 
@@ -245,7 +264,7 @@ class RO:
             name    = RO.obs[name]
             i   = RO.states.index(name)
             y   = np.array(self.states)[:, i]
-        elif name=='modes':
+        elif name=='mode':
             y   = np.array(self.modes)
         else:
             raise RuntimeError('Unknown name.')
@@ -269,8 +288,9 @@ class RO:
         self.f_r    = 0
         self.f_m    = 0
         # discrete modes
-        self.sigma1 = None
-        self.sigma2 = None
+        self.mode   = 0
+        self.sigma1 = 1
+        self.sigma2 = 0
         # continous states
         self.init(self.inital_states)
         self.d_q_rp = 0

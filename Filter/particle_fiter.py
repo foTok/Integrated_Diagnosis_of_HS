@@ -72,6 +72,9 @@ class hs_system:
         self.ov = obs_var     # np.array
         self.p_std = np.sqrt(process_var) # np.array
 
+    def set_parameter_fault(self, name, value):
+        print('You must implement this interface')
+
     def modes(self, modes_i, states_i):
         print('You must implement this interface')
         modes_ip1 = None
