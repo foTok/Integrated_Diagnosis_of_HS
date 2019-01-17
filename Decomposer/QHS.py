@@ -20,7 +20,7 @@ import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
 sys.path.insert(0,parentdir)
 from Decomposer.utilities import M_plus
-from Decomposer.utilities import belong_to
+from Decomposer.utilities import is_subset_of
 
 class QModel:
     '''
@@ -235,7 +235,7 @@ class QModel:
         while len(R) > 0:
             E = R[0]
             E_b = self._lump(E, M_a)
-            if belong_to(E_b, R):
+            if is_subset_of(E_b, R):
                 #Because E_b is always different, we can just append
                 uE_b = set.union(*E_b)
                 R_a.append(uE_b)

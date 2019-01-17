@@ -23,7 +23,7 @@ def M_plus(umatrix, names):
         M_plus.add(names[i])
     return M_plus
 
-def belong_to(s0, s1):
+def is_subset_of(s0, s1):
     '''
     Judge if s0 is the subset of s1
     @para s0 the subset if return True
