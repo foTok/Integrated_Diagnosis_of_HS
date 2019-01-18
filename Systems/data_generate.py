@@ -13,7 +13,7 @@ def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.001
 if __name__ == "__main__":
     # for debug
     sample_int = 0.001
-    file_name = 'data\\debug\\0'
+    file_name = 'RO_System\\data\\debug\\0'
     path = os.path.dirname(file_name)
     if not os.path.isdir(path):
         os.makedirs(path)
