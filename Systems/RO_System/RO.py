@@ -62,8 +62,9 @@ class RO:
             self.modes.append(mode_i)
             mode_fault, para_fault = self.fault_parameters(i*self.step_len, fault_type, fault_time, fault_magnitude)
             mode_i = mode_i if mode_fault is None else mode_fault
-            state_i, output_i = self.state_step(mode_i, state_i, para_fault)
+            state_i = self.state_step(mode_i, state_i, para_fault)
             self.states.append(state_i)
+            output_i = self.output(_, state_i)
             self.outputs.append(output_i)
 
     def mode_step(self, mode_i, state_i):
@@ -148,8 +149,11 @@ class RO:
         
         # states and outputs
         states_ip1 = [q_fp, p_tr, q_rp, p_memb, e_Cbrine, e_Ck]
-        output_ip1 = [q_fp, p_tr, q_rp, e_Cbrine, e_Ck]
-        return states_ip1, output_ip1
+        return states_ip1
+
+    def output(self, _, states):
+        q_fp, p_tr, q_rp, _, e_Cbrine, e_Ck = states
+        return [q_fp, p_tr, q_rp, e_Cbrine, e_Ck]
 
     def np_modes(self):
         return np.array(self.modes)

@@ -2,6 +2,7 @@
 This document implementes some particle filter algorithms.
 '''
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.stats import chi2
 
 def chi2_confidence(x, df):
@@ -17,18 +18,16 @@ def normalize(particles):
     for ptc in particles:
         w += ptc.weight
     for ptc in particles:
-        ptc.weight /= w
+        ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
 
 class hybrid_particle:
     '''
     a hybrid particle contains both discrete modes and continuous states
     '''
-    def __init__(self, mode_names, state_names, mode_values=None, state_values=None, weight=1):
-        self.mode_names = mode_names        # list, not change
-        self.state_names = state_names      # list, not change
+    def __init__(self, mode_values=None, state_values=None, weight=1):
         self.mode_values = mode_values      # int, may change
         self.state_values = state_values    # list or np.array, may change
-        self.weigth = weight                # real, may change
+        self.weight = weight                # real, may change
         self.fault_type = None              # int or str
         self.fault_magnitude = None         # real
 
@@ -52,18 +51,16 @@ class hybrid_particle:
         self.state_values = state_values
 
     def set_weigth(self, weight):
-        self.weigth = weight
+        self.weight = weight
 
     def set_fault(self, fault_type, fault_magnitude=None):
         self.fault_type = fault_type
         self.fault_magnitude = fault_magnitude
 
     def clone(self):
-        pct = hybrid_particle(self.mode_names,\
-                              self.state_names,\
-                              self.mode_values,\
+        pct = hybrid_particle(self.mode_values,\
                               self.state_values.copy(),\
-                              self.weigth)
+                              self.weight)
         return pct
 
 class hs_system_wrapper:
@@ -74,7 +71,7 @@ class hs_system_wrapper:
         self.hs = hs
         self.pv = process_var # np.array
         self.ov = obs_var     # np.array
-        self.p_std = np.sqrt(process_var) # np.array
+        self.p_std = None if process_var is None else np.sqrt(process_var)# np.array
 
     def fault_parameters(self, fault_type, fault_magnitude):
         return self.hs.fault_parameters(0, fault_type, 1, fault_magnitude)
@@ -85,6 +82,9 @@ class hs_system_wrapper:
     def state_step(self, mode_ip1, state_i, fault_parameters):
         return self.hs.state_step(mode_ip1, state_i, fault_parameters)
 
+    def output(self, mode, states):
+        return self.hs.output(mode, states)
+
 class chi2_hpf:
     def __init__(self, hsw=hs_system_wrapper()):
         # The default parameter of hsw has no significance
@@ -92,6 +92,7 @@ class chi2_hpf:
         # so that programming could be easier.
         self.hsw = hsw # hs_system_wrapper
         self.tracjectory = []
+        self.best = None
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -99,9 +100,7 @@ class chi2_hpf:
         disturbance *= np.sqrt(state_var)
         for i in range(N):
             states = state_mean + disturbance[i]
-            ptc = hybrid_particle(self.hsw.mode_names,\
-                                  self.hsw.state_names,\
-                                  modes,\
+            ptc = hybrid_particle(modes,\
                                   states,\
                                   1/N)
             particles.append(ptc)
@@ -118,11 +117,14 @@ class chi2_hpf:
             modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
             mode_fault, para_fault = self.hsw.fault_parameters(p.fault_type, p.fault_magnitude)
             modes = modes if mode_fault is None else mode_fault
-            states, output = self.hsw.state_step(modes, states, para_fault)
-   
+            states = self.hsw.state_step(modes, states, para_fault)
+            # add process noise
+            process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv)
+            states += process_noise
             p.set_hs(modes, states)
+            output = self.hsw.output(modes, states)
             # compute Pobs
-            res = (obs - output)**2/self.hsw.obs_var
+            res = (obs - output)**2/self.hsw.ov
             Pobs = chi2_confidence(np.sum(res), len(res))
             p.set_weigth(p.weight*Pobs)
             particles_ip1.append(p)
@@ -131,9 +133,17 @@ class chi2_hpf:
 
     def track(self, modes, state_mean, state_var, N, observations):
         for obs in observations:
-            if self.tracjectory:
-                particles = self.tracjectory[-1]
-            else:
-                particles = self.init_particles(modes, state_mean, state_var, N)
+            particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
             particles_ip1 = self.step(particles, obs)
-            self.tracjectory.append(particles_ip1)              
+            self.tracjectory.append(particles_ip1)
+
+    def find_best_trajectory(self):
+        best = []
+        for ptcs in self.tracjectory:
+            best_ptc = max(ptcs, key=lambda p: p.weight)
+            best.append(best_ptc.state_values)
+        self.best = np.array(best)
+
+    def plot(self, index):
+        plt.plot(self.best[:, index])
+        plt.show()

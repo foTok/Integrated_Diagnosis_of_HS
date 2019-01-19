@@ -1,3 +1,8 @@
+import os
+import sys
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
+sys.path.insert(0,parentdir)
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 import pickle
 import numpy as np
 
@@ -11,7 +16,7 @@ class term:
         fault_magnitude: None or real
         fault_time: real
         '''
-        self.file_name = file_name
+        self.file_name = os.path.basename(file_name)
         self.fault_type = fault_type
         self.fault_magnitude = fault_magnitude
         self.fault_time = fault_time
@@ -54,11 +59,15 @@ class data_manager:
     ANNs.
     '''
     def __init__(self, cfg_file):
+        path = os.path.dirname(cfg_file)
         self.sample_int = 1.0
-        self.cfg = pickle.load(cfg_file)
+        with open(cfg_file, 'rb') as f:
+            cfg = pickle.load(f)
+        self.cfg = cfg
         self.data = []
         for term in self.cfg.terms:
-            data_file = term.file_name
+            data_file = os.path.join(path, term.file_name)
+            data_file = data_file if data_file.endswith('.npy') else data_file+'.npy'
             data = np.load(data_file)
             self.data.append(data)
 
@@ -67,12 +76,13 @@ class data_manager:
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
 
-    def add_noise(self, data, snr=None):
-        if snr is None:
+    def add_noise(self, data, var_por=None):
+        if var_por is None:
             return data
-        ratio = 1/(10**(snr/20))
-        std  = np.std(data, 0)
-        noise = np.random.standard_normal(data.shape) * std * ratio
+        mean  = np.mean(data, 0)
+        var = mean * var_por
+        distrub = np.sqrt(var)
+        noise = np.random.standard_normal(data.shape) * distrub
         data_with_noise = data + noise
         return data_with_noise
   
@@ -84,6 +94,7 @@ class data_manager:
         state_index = [self.cfg.variable_names.index(name) for name in self.cfg.state_names]
         states = data[:,state_index]
         x = np.arange(0, len(states), int(self.sample_int/self.cfg.sample_int))
+        x = x[1:]
         states = states[x, :]
         return states
 
@@ -95,6 +106,7 @@ class data_manager:
         output_index = [self.cfg.variable_names.index(name) for name in self.cfg.output_names]
         outputs = data[:,output_index]
         x = np.arange(0, len(outputs), int(self.sample_int/self.cfg.sample_int))
+        x = x[1:]
         outputs = outputs[x, :]
         # add noise
         outputs_with_noise = self.add_noise(outputs, snr)
@@ -112,3 +124,6 @@ class data_manager:
             print('fault {} with magnitude {} at {}s.'\
                   .format(fault_type, fault_magnitude, fault_time))
         return fault_type, fault_magnitude, fault_time
+
+    # TODO
+    # sample data for ANN.
