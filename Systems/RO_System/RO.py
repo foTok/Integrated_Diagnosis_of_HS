@@ -7,6 +7,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 import numpy as np
 import matplotlib.pyplot as plt
+from utilities.utilities import add_noise
 
 class RO:
     # parameters
@@ -37,6 +38,10 @@ class RO:
         # trajectory
         self.modes  = []
         self.states = []
+        self.state_disturb = None
+
+    def set_state_disturb(self, disturb):
+        self.state_disturb = disturb
 
     def fault_parameters(self, t, fault_type=None, fault_time=None, fault_magnitude=None):
         if (fault_time is None) or (t <= fault_time):
@@ -64,7 +69,7 @@ class RO:
             mode_i = mode_i if mode_fault is None else mode_fault
             state_i = self.state_step(mode_i, state_i, para_fault)
             self.states.append(state_i)
-            output_i = self.output(_, state_i)
+            output_i = self.output(mode_i, state_i)
             self.outputs.append(output_i)
 
     def mode_step(self, mode_i, state_i):
@@ -149,9 +154,11 @@ class RO:
         
         # states and outputs
         states_ip1 = [q_fp, p_tr, q_rp, p_memb, e_Cbrine, e_Ck]
+        if self.state_disturb is not None:
+            states_ip1 = add_noise(states_ip1, self.state_disturb)
         return states_ip1
 
-    def output(self, _, states):
+    def output(self, mode, states):
         q_fp, p_tr, q_rp, _, e_Cbrine, e_Ck = states
         return [q_fp, p_tr, q_rp, e_Cbrine, e_Ck]
 

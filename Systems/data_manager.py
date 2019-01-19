@@ -5,6 +5,7 @@ sys.path.insert(0,parentdir)
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 import pickle
 import numpy as np
+from utilities.utilities import add_noise
 
 class term:
     def __init__(self, file_name, fault_type=None, fault_magnitude=None, fault_time=None):
@@ -75,16 +76,6 @@ class data_manager:
         # the new sample rate must be integer times the orginal one
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
-
-    def add_noise(self, data, var_por=None):
-        if var_por is None:
-            return data
-        mean  = np.mean(data, 0)
-        var = mean * var_por
-        distrub = np.sqrt(var)
-        noise = np.random.standard_normal(data.shape) * distrub
-        data_with_noise = data + noise
-        return data_with_noise
   
     def select_states(self, index):
         '''
@@ -93,12 +84,12 @@ class data_manager:
         data = self.data[index]
         state_index = [self.cfg.variable_names.index(name) for name in self.cfg.state_names]
         states = data[:,state_index]
-        x = np.arange(0, len(states), int(self.sample_int/self.cfg.sample_int))
-        x = x[1:]
+        interval = int(self.sample_int/self.cfg.sample_int)
+        x = np.arange(interval, len(states)+1, interval)-1
         states = states[x, :]
         return states
 
-    def select_outputs(self, index, snr=None):
+    def select_outputs(self, index, snr_or_pro=None):
         '''
         select all the outputs of the index_th file
         '''
@@ -109,7 +100,7 @@ class data_manager:
         x = x[1:]
         outputs = outputs[x, :]
         # add noise
-        outputs_with_noise = self.add_noise(outputs, snr)
+        outputs_with_noise = add_noise(outputs, snr_or_pro)
         return outputs_with_noise
 
     def get_info(self, index, prt=True):
