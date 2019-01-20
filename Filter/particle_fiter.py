@@ -20,6 +20,25 @@ def normalize(particles):
     for ptc in particles:
         ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
 
+def resample(particles, N):
+    def index(s, interval):
+        for i, t in zip(range(len(interval)-1), interval[1:]):
+            if s < t:
+                return i
+        return -1
+
+    interval = [0]
+    for ptc in particles:
+        interval.append(interval[-1]+ptc.weight)
+    samples = np.random.uniform(interval[0], interval[-1], N)
+    new_partiles = []
+    for s in samples:
+        i = index(s, interval)
+        ptc = particles[i].clone()
+        new_partiles.append(ptc)
+    normalize(new_partiles)
+    return new_partiles
+
 class hybrid_particle:
     '''
     a hybrid particle contains both discrete modes and continuous states
@@ -92,7 +111,6 @@ class chi2_hpf:
         # so that programming could be easier.
         self.hsw = hsw # hs_system_wrapper
         self.tracjectory = []
-        self.best = None
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -129,7 +147,8 @@ class chi2_hpf:
             p.set_weigth(p.weight*Pobs)
             particles_ip1.append(p)
         normalize(particles_ip1)
-        return particles_ip1
+        re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
+        return re_particles_ip1
 
     def track(self, modes, state_mean, state_var, N, observations):
         for obs in observations:
@@ -137,13 +156,34 @@ class chi2_hpf:
             particles_ip1 = self.step(particles, obs)
             self.tracjectory.append(particles_ip1)
 
-    def find_best_trajectory(self):
+    def best_trajectory(self):
         best = []
         for ptcs in self.tracjectory:
             best_ptc = max(ptcs, key=lambda p: p.weight)
             best.append(best_ptc.state_values)
-        self.best = np.array(best)
+        return np.array(best)
 
-    def plot(self, index):
-        plt.plot(self.best[:, index])
+    def average_trajectory(self):
+        average = []
+        for particles in self.tracjectory:
+            state = np.zeros(len(self.hsw.pv))
+            for p in particles:
+                state += p.weight*p.state_values
+            average.append(state)
+        return np.array(average)
+
+    def plot(self, index, averge=False):
+        if averge:
+            data = self.average_trajectory()
+        else:
+            data = self.best_trajectory()
+        plt.plot(data[:, index])
+        plt.show()
+
+    def plot_mode(self):
+        mode = []
+        for ptcs in self.tracjectory:
+            best_ptc = max(ptcs, key=lambda p: p.weight)
+            mode.append(best_ptc.mode_values)
+        plt.plot(np.array(mode))
         plt.show()

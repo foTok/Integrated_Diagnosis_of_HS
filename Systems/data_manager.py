@@ -77,7 +77,7 @@ class data_manager:
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
   
-    def select_states(self, index):
+    def select_states(self, index, snr_or_pro=None):
         '''
         select all the states of the index_th file
         '''
@@ -87,7 +87,8 @@ class data_manager:
         interval = int(self.sample_int/self.cfg.sample_int)
         x = np.arange(interval, len(states)+1, interval)-1
         states = states[x, :]
-        return states
+        states_with_noise = add_noise(states, snr_or_pro)
+        return states_with_noise
 
     def select_outputs(self, index, snr_or_pro=None):
         '''
