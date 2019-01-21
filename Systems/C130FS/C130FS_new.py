@@ -53,18 +53,15 @@ class C130FS:
     The class to simulate C130 fuel system behavior.
     '''
     def __init__(self, sim=1):
-        ################## Parameter Basis ##################
-        # This means that the given parameter is based on
-        #       *************** 10 min **************
         # Basic unit for simr is second.
-        # Please do not set simr as some weird number such as 0.14142515
         self.sim_rate = sim
         self.demand = np.array([60, 40, 50, 50]) / (60*10) * sim
         self.R = np.array([4]*6)*(60*10)/sim
         # control parameters
         self.balance_begin = 200
         self.balance_end = 50
-        self.pump_line = 10
+        self.pump_open_line = 10
+        self.pump_close_line = 0.5
         
         self.state = [] # init [1340, 1230, 1230, 1340, 900, 900]
         self.mode = []
@@ -87,9 +84,9 @@ class C130FS:
         return mode
 
     def pump_i_mode_step(self, p, h): # pump 1~4
-        if p==0 and h>self.pump_line:
+        if p==0 and h>self.pump_open_line:
             p = 1
-        elif p==1 and h < self.pump_line:
+        elif p==1 and h < self.pump_close_line:
             p = 0
         else:
             pass # do nothing
@@ -104,16 +101,16 @@ class C130FS:
         p3 = self.pump_i_mode_step(p3, h3)
         p4 = self.pump_i_mode_step(p4, h4)
         # pump l
-        if pl==0 and (h1<self.pump_line or h2<self.pump_line) and (hl>self.pump_line):
+        if pl==0 and (p1%2==0 or p2%2==0) and hl>self.pump_open_line:
             pl = 1
-        elif pl==1 and ((h1>self.pump_line and h2>self.pump_line) or hl<self.pump_line):
+        elif pl==1 and ((p1%2==1 and p2%2==1) or hl<self.pump_close_line):
             pl = 0
         else:
             pass # do nothing
         # pump r
-        if pr==0 and (h3<self.pump_line or h4<self.pump_line) and (hr>self.pump_line):
+        if pr==0 and (p3%2==0 or p4%2==0) and hr>self.pump_open_line:
             pr = 1
-        elif pr==1 and ((h3>self.pump_line and h4>self.pump_line) or hr<self.pump_line):
+        elif pr==1 and ((p3%2==1 and p4%2==1) or hr<self.pump_close_line):
             pr = 0
         else:
             pass # do nothing
@@ -228,12 +225,13 @@ class C130FS:
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('Fuel in tanks')  # Add a title so we know which it is
         data = self.np_state()
-        ax_lst[0, 0].plot(data[:, 0]) # Tank 1
-        ax_lst[1, 0].plot(data[:, 1]) # Tank 2
-        ax_lst[2, 0].plot(data[:, 4]) # Tank left auxiliary
-        ax_lst[0, 1].plot(data[:, 2]) # Tank 3
-        ax_lst[1, 1].plot(data[:, 3]) # Tank 4
-        ax_lst[2, 1].plot(data[:, 5]) # Tank right auxiliary
+        x = np.arange(len(data))*self.sim_rate
+        ax_lst[0, 0].plot(x, data[:, 0]) # Tank 1
+        ax_lst[1, 0].plot(x, data[:, 1]) # Tank 2
+        ax_lst[2, 0].plot(x, data[:, 4]) # Tank left auxiliary
+        ax_lst[0, 1].plot(x, data[:, 2]) # Tank 3
+        ax_lst[1, 1].plot(x, data[:, 3]) # Tank 4
+        ax_lst[2, 1].plot(x, data[:, 5]) # Tank right auxiliary
         plt.show()
 
     def show_pumps(self):
@@ -243,12 +241,13 @@ class C130FS:
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('Pump inner modes')  # Add a title so we know which it is
         data = self.np_mode()
-        ax_lst[0, 0].plot(data[:, 0])
-        ax_lst[1, 0].plot(data[:, 1])
-        ax_lst[2, 0].plot(data[:, 4])
-        ax_lst[0, 1].plot(data[:, 2])
-        ax_lst[1, 1].plot(data[:, 3])
-        ax_lst[2, 1].plot(data[:, 5])
+        x = np.arange(len(data))*self.sim_rate
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[2, 0].plot(x, data[:, 4])
+        ax_lst[0, 1].plot(x, data[:, 2])
+        ax_lst[1, 1].plot(x, data[:, 3])
+        ax_lst[2, 1].plot(x, data[:, 5])
         plt.show()
 
     def show_valves(self):
@@ -258,10 +257,11 @@ class C130FS:
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('valve inner modes')  # Add a title so we know which it is
         data = self.np_mode()
-        ax_lst[0, 0].plot(data[:, 6])
-        ax_lst[1, 0].plot(data[:, 7])
-        ax_lst[2, 0].plot(data[:, 8])
-        ax_lst[0, 1].plot(data[:, 9])
-        ax_lst[1, 1].plot(data[:, 10])
-        ax_lst[2, 1].plot(data[:, 11])
+        x = np.arange(len(data))*self.sim_rate
+        ax_lst[0, 0].plot(x, data[:, 6])
+        ax_lst[1, 0].plot(x, data[:, 7])
+        ax_lst[2, 0].plot(x, data[:, 8])
+        ax_lst[0, 1].plot(x, data[:, 9])
+        ax_lst[1, 1].plot(x, data[:, 10])
+        ax_lst[2, 1].plot(x, data[:, 11])
         plt.show()
