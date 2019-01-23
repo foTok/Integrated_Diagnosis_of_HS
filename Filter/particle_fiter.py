@@ -1,6 +1,7 @@
 '''
 This document implementes some particle filter algorithms.
 '''
+import threading
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import chi2
@@ -92,8 +93,8 @@ class hs_system_wrapper:
         self.ov = obs_var     # np.array
         self.p_std = None if process_var is None else np.sqrt(process_var)# np.array
 
-    def fault_parameters(self, fault_type, fault_magnitude):
-        return self.hs.fault_parameters(0, fault_type, 1, fault_magnitude)
+    def fault_parameters(self, mode, fault_type, fault_magnitude):
+        return self.hs.fault_parameters(0, mode, fault_type, 1, fault_magnitude)
 
     def mode_step(self, mode_i, state_i):
         return self.hs.mode_step(mode_i, state_i)
@@ -124,36 +125,61 @@ class chi2_hpf:
             particles.append(ptc)
         return particles
 
+    def step_particle(self, ptc, particles, obs, lock=None):
+        p = ptc.clone()
+        # one step based on the partical
+        modes, para_fault = self.hsw.fault_parameters(p.mode_values, p.fault_type, p.fault_magnitude)
+        modes, states = self.hsw.mode_step(modes, p.state_values)
+        states = self.hsw.state_step(modes, states, para_fault)
+        # add process noise
+        process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv)
+        states += process_noise
+        p.set_hs(modes, states)
+        output = self.hsw.output(modes, states)
+        # compute Pobs
+        res = (obs - output)**2/self.hsw.ov
+        Pobs = chi2_confidence(np.sum(res), len(res))
+        p.set_weigth(p.weight*Pobs)
+        if lock is None:
+            particles.append(p)
+        else:
+            lock.acquire()
+            particles.append(p)
+            lock.release()
+
     def step(self, particles, obs):
         '''
         particles: hybrid_particle list
         '''
         particles_ip1 = []
         for ptc in particles:
-            p = ptc.clone()
-            # one step based on the partical
-            modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
-            mode_fault, para_fault = self.hsw.fault_parameters(p.fault_type, p.fault_magnitude)
-            modes = modes if mode_fault is None else mode_fault
-            states = self.hsw.state_step(modes, states, para_fault)
-            # add process noise
-            process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv)
-            states += process_noise
-            p.set_hs(modes, states)
-            output = self.hsw.output(modes, states)
-            # compute Pobs
-            res = (obs - output)**2/self.hsw.ov
-            Pobs = chi2_confidence(np.sum(res), len(res))
-            p.set_weigth(p.weight*Pobs)
-            particles_ip1.append(p)
+            self.step_particle(ptc, particles_ip1, obs)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
         return re_particles_ip1
 
-    def track(self, modes, state_mean, state_var, N, observations):
+    def parallel_step(self, particles, obs):
+        '''
+        particles: hybrid_particle list
+        '''
+        particles_ip1 = []
+        thread = []
+        shared_resource_lock = threading.Lock()
+        for ptc in particles:
+            t = threading.Thread(target=self.step_particle , args=(ptc, particles_ip1, obs, shared_resource_lock))
+            t.start()
+            thread.append(t)
+        for t in thread:
+            t.join()
+        normalize(particles_ip1)
+        re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
+        return re_particles_ip1
+
+    def track(self, modes, state_mean, state_var, N, observations, parallel=False):
+        step = self.step if not parallel else self.parallel_step
         for obs in observations:
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
-            particles_ip1 = self.step(particles, obs)
+            particles_ip1 = step(particles, obs)
             self.tracjectory.append(particles_ip1)
 
     def best_trajectory(self):

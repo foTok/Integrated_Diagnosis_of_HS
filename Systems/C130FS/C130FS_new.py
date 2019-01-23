@@ -51,6 +51,13 @@ import matplotlib.pyplot as plt
 class C130FS:
     '''
     The class to simulate C130 fuel system behavior.
+    states: height: 1, 2, 3, 4, L, R
+    modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
+           pump mode: close, open, failure => 0, 1, 2.
+                      open ~ sigma = 1; close, failure ~ sigma = 0
+           mode valve: close, open, s_close, s_open => 0, 1, 2, 3
+                      close, s_close ~ sigma = 0; open, s_open => sigma = 1
+    fault parameters: pump 1,2,3,4,L,R + tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
     '''
     def __init__(self, sim=1):
         # Basic unit for simr is second.
@@ -65,13 +72,7 @@ class C130FS:
         
         self.state = [] # init [1340, 1230, 1230, 1340, 900, 900]
         self.mode = []
-        # states: 1, 2, 3, 4, L, R
-        # modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
-        #        pump mode: close, open, failure => 0, 1, 2.
-        #                   open ~ sigma = 1; close, failure ~ sigma = 0
-        #        mode valve: close, open, s_close, s_open => 0, 1, 2, 3
-        #                   close, s_close ~ sigma = 0; open, s_open => sigma = 1
-        # fault parameters: pump 1,2,3,4,L,R + tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
+        self.output = []
 
     def valve_i_mode_step(self, mode, br):
         br = np.array(br)
@@ -144,8 +145,46 @@ class C130FS:
         vr = self.valve_i_mode_step(vr, [br4])
         return [v1, v2, v3, v4, vl, vr]
 
-    def fault_parameters(self, t=None, fault_type=None, fault_time=None, fault_magnitude=None):
-        return None, [0]*6 + [float('inf')]*6 + [0]*6
+    def fault_parameters(self, modes, t=None, fault_type=None, fault_time=None, fault_magnitude=None):
+        '''
+        modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R    modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
+           pump mode: close, open, failure => 0, 1, 2.
+                      open ~ sigma = 1; close, failure ~ sigma = 0
+           mode valve: close, open, s_close, s_open => 0, 1, 2, 3
+                      close, s_close ~ sigma = 0; open, s_open => sigma = 1
+        fault parameters: pump 1,2,3,4,L,R + tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
+        fault_type: a list, [component_type, fault_type, id]
+        '''
+        fault_free_parameter = [0]*6 + [float('inf')]*6 + [0]*6
+        if (fault_type is None) or (t <= fault_time):
+            return modes, fault_free_parameter
+        modes = modes[:]
+        fault_parameters = fault_free_parameter[:]
+        component_type, fault_type, id = fault_type
+        if component_type=='pump':
+            if fault_type=='fail':
+                modes[id] = 2
+            elif fault_type=='leak':
+                fault_parameters[id] = fault_magnitude
+            else:
+                raise RuntimeError('Unknown Pump Fault.')
+        elif component_type=='tank':
+            if fault_type=='leak':
+                fault_parameters[6+id] = fault_magnitude
+            else:
+                raise RuntimeError('Unknown Tank Error.')
+        elif component_type=='valve':
+            if fault_type=='s_close':
+                modes[6+id] = 2
+            elif fault_type=='s_open':
+                modes[6+id] = 3
+            elif fault_type=='p_stuck':
+                fault_parameters[12+id] = fault_magnitude
+            else:
+                raise RuntimeError('Unknown Valve Fault.')
+        else:
+            raise RuntimeError('Unknown Component!')
+        return modes, fault_parameters
 
     def mode_step(self, mode_i, state_i):
         mode_p = mode_i[0:6]
@@ -201,16 +240,24 @@ class C130FS:
             n_tank[i] = tank[i] + valve[i] - pump[i] - tank[i] / f_t[i]
         return n_tank
 
-    def run(self, init=[1340, 1230, 1230, 1340, 900, 900]):
+    def output(self, mode, states):
+        out = states[:]
+        return out
+
+    def run(self, init=[1340, 1230, 1230, 1340, 900, 900], t=0, fault_type=None, fault_time=None, fault_magnitude=None):
         state = init if not self.state else self.state[-1]
         mode = ([1,1,1,1]+[0]*8) if not self.mode else self.mode[-1]
+        i = 0
         while sum(mode[0:6])!=0:
+            i += 1
+            t = i*self.sim_rate
+            mode, fault_para = self.fault_parameters(mode, t, fault_type, fault_time, fault_magnitude)
             mode = self.mode_step(mode, state)
-            _mode, fault_para = self.fault_parameters()
-            mode = mode if _mode is None else _mode
             state = self.state_step(mode, state, fault_para)
+            output = self.output(mode, state)
             self.mode.append(mode)
             self.state.append(state)
+            self.output.append(output)
 
     def np_state(self):
         return np.array(self.state)

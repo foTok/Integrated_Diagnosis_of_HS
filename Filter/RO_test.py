@@ -7,6 +7,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 from particle_fiter import hs_system_wrapper
 from particle_fiter import chi2_hpf
 from Systems.data_manager import data_manager
@@ -31,7 +32,10 @@ ro = RO(si)
 ro.set_state_disturb(pv)
 hsw = hs_system_wrapper(ro, pv*1.2, ov*1.2)
 tracker = chi2_hpf(hsw)
-tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], N=30, observations=output_with_noise)
+start = time.clock()
+tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], N=30, observations=output_with_noise, parallel=True)
+elapsed = (time.clock() - start)
+print("Time used:", elapsed)
 for i in range(5):
     tracker.plot(i)
 tracker.plot_mode()

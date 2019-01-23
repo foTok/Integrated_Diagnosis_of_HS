@@ -3,8 +3,8 @@ Simulate RO system.
 '''
 import os
 import sys
-parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
-sys.path.insert(0,parentdir)
+rootdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0,rootdir)
 import numpy as np
 import matplotlib.pyplot as plt
 from utilities.utilities import add_noise
@@ -43,17 +43,17 @@ class RO:
     def set_state_disturb(self, disturb):
         self.state_disturb = disturb
 
-    def fault_parameters(self, t, fault_type=None, fault_time=None, fault_magnitude=None):
+    def fault_parameters(self, t, mode, fault_type=None, fault_time=None, fault_magnitude=None):
         if (fault_time is None) or (t <= fault_time):
-            return None, [0, 0, 0]
+            return mode, [0, 0, 0]
         if fault_type==3 or fault_type==4 or fault_type==5:
             return fault_type, [0, 0, 0]
         elif fault_type=='f_f':
-            return None, [fault_magnitude, 0, 0]
+            return mode, [fault_magnitude, 0, 0]
         elif fault_type=='f_r':
-            return None, [0, fault_magnitude, 0]
+            return mode, [0, fault_magnitude, 0]
         elif fault_type=='f_m':
-            return None, [0, 0, fault_magnitude]
+            return mode, [0, 0, fault_magnitude]
         else:
             raise RuntimeError('Unknown Fault.')
 
@@ -63,13 +63,13 @@ class RO:
         state_i = init_state
         while i*self.step_len <= t:
             i += 1
-            mode_i, state_i = self.mode_step(mode_i, state_i)
+            # if insert fault
+            mode_i, para_fault = self.fault_parameters(i*self.step_len, mode_i, fault_type, fault_time, fault_magnitude)
+            mode_i, state_i = self.mode_step(mode_i, state_i) # mode +1
+            state_i = self.state_step(mode_i, state_i, para_fault) # state +1
+            output_i = self.output(mode_i, state_i) # output
             self.modes.append(mode_i)
-            mode_fault, para_fault = self.fault_parameters(i*self.step_len, fault_type, fault_time, fault_magnitude)
-            mode_i = mode_i if mode_fault is None else mode_fault
-            state_i = self.state_step(mode_i, state_i, para_fault)
             self.states.append(state_i)
-            output_i = self.output(mode_i, state_i)
             self.outputs.append(output_i)
 
     def mode_step(self, mode_i, state_i):
