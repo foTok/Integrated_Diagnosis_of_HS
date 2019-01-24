@@ -4,7 +4,8 @@ This document implementes some particle filter algorithms.
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
+from multiprocessing import Lock
 from scipy.stats import chi2
 
 def chi2_confidence(x, df):
@@ -126,7 +127,7 @@ class chi2_hpf:
             particles.append(ptc)
         return particles
 
-    def step_particle(self, ptc, obs):
+    def step_particle(self, ptc, particles, obs):
         p = ptc.clone()
         # one step based on the partical
         modes, para_fault = self.hsw.fault_parameters(p.mode_values, p.fault_type, p.fault_magnitude)
@@ -149,7 +150,7 @@ class chi2_hpf:
         '''
         particles_ip1 = []
         for ptc in particles:
-            p = self.step_particle(ptc, obs)
+            p = self.step_particle(ptc, particles_ip1, obs)
             particles_ip1.append(p)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
@@ -160,26 +161,25 @@ class chi2_hpf:
         particles: hybrid_particle list
         '''
         particles_ip1 = []
-        thread = []
+        results = []
         for ptc in particles:
-            t = pool.submit(self.step_particle, ptc, obs)
-            thread.append(t)
-        for t in thread:
-            p = t.result()
-            particles_ip1.append(p)
+            r = pool.apply_async(self.step_particle, args=(ptc, particles_ip1, obs))
+            results.append(r)
+        for r in results:
+            particles_ip1.append(r.get())
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
         return re_particles_ip1
 
     def track(self, modes, state_mean, state_var, N, observations, parallel=False):
-        pool, step = (ThreadPoolExecutor(8), self.parallel_step) if parallel else (None, self.step)
+        pool, step = (Pool(4), self.parallel_step) if parallel else (None, self.step)
         for obs in observations:
-            # start = time.clock()
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
             particles_ip1 = step(particles, obs, pool)
             self.tracjectory.append(particles_ip1)
-            # elapsed = (time.clock() - start)
-            # print("Time used:", elapsed)
+        if pool is not None:
+            pool.join()
+            pool.close()
 
     def best_trajectory(self):
         best = []
