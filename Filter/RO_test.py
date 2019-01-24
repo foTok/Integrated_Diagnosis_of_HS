@@ -33,7 +33,7 @@ ro.set_state_disturb(pv)
 hsw = hs_system_wrapper(ro, pv*1.2, ov*1.2)
 tracker = chi2_hpf(hsw)
 start = time.clock()
-tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], N=30, observations=output_with_noise, parallel=True)
+tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], N=30, observations=output_with_noise, parallel=False)
 elapsed = (time.clock() - start)
 print("Time used:", elapsed)
 for i in range(5):

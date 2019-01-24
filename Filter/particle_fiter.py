@@ -1,7 +1,7 @@
 '''
 This document implementes some particle filter algorithms.
 '''
-import threading
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from concurrent.futures import ThreadPoolExecutor
@@ -174,9 +174,12 @@ class chi2_hpf:
     def track(self, modes, state_mean, state_var, N, observations, parallel=False):
         pool, step = (ThreadPoolExecutor(8), self.parallel_step) if parallel else (None, self.step)
         for obs in observations:
+            # start = time.clock()
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
             particles_ip1 = step(particles, obs, pool)
             self.tracjectory.append(particles_ip1)
+            # elapsed = (time.clock() - start)
+            # print("Time used:", elapsed)
 
     def best_trajectory(self):
         best = []
