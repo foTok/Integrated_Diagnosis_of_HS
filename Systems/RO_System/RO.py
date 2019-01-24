@@ -58,7 +58,7 @@ class RO:
         else:
             raise RuntimeError('Unknown Fault.')
 
-    def run(self, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None):
+    def run(self, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
         i = 1
         mode_i = None
         state_i = init_state
@@ -179,31 +179,37 @@ class RO:
         data = np.concatenate((modes, states), 1)
         return data
 
-    def _show(self, name):
-        assert isinstance(name, str)
-        if name in RO.states:
-            i   = RO.states.index(name)
-            y   = np.array(self.states)[:, i]
-        elif name=='mode':
-            y   = np.array(self.modes)
-        else:
-            raise RuntimeError('Unknown name.')
-        x = (np.array(range(len(self.states)))+1)*self.step_len
-        plt.figure()
-        plt.plot(x, y)
-        plt.xlabel('Time(s)')
-        plt.ylabel(name)
+    def plot_states(self, states=None):
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
+        fig.suptitle('System States')  # Add a title so we know which it is
+        data = self.np_states() if states is None else states
+        x = np.arange(len(data))*self.step_len
+        # 0
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel(RO.states[0])
+        # 1
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel(RO.states[1])
+        # 2
+        ax_lst[2, 0].plot(x, data[:, 2])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel(RO.states[2])
+        # 3
+        ax_lst[0, 1].plot(x, data[:, 3])
+        ax_lst[0, 1].set_ylabel(RO.states[3])
+        # 4
+        ax_lst[1, 1].plot(x, data[:, 4])
+        ax_lst[1, 1].set_ylabel(RO.states[4])
+        # 5
+        ax_lst[2, 1].plot(x, data[:, 5])
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel(RO.states[5])
         plt.show()
 
-    def show(self, name=None):
-        if name is not None:
-            self._show(name)
-        else:
-            for name in RO.states:
-                self._show(name)
-
-    def reset(self):
-        # trajectory
-        self.modes  = []
-        self.states = []
-        self.outputs = []
+    def plot_modes(self, modes=None):
+        data = self.np_modes() if modes is None else modes
+        x = np.arange(len(data))*self.step_len
+        plt.plot(x, data)
+        plt.xlabel('Time/s')
+        plt.ylabel('Mode')
+        plt.show()

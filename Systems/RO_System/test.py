@@ -10,7 +10,7 @@ from utilities.utilities import obtain_var
 
 if __name__ == "__main__":
     si = 0.001
-    process_snr = 70
+    process_snr = 1000
     data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
     data_mana = data_manager(data_cfg)
     data_mana.set_sample_int(si)
@@ -35,9 +35,8 @@ if __name__ == "__main__":
     ro = RO(sample_int) # 0.01 is the maximal available sample interval
     ro.set_state_disturb(pv)
     ro.run(init_state, length, fault_type, args.fault_time, args.magnitude)
-    for s in states:
-        ro.show(s)
-    ro.show('mode')
+    ro.plot_states()
+    ro.plot_modes()
 
 
     # init_state = [0, 0, 0, 0, 0, 0]

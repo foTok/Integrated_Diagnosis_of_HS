@@ -37,8 +37,7 @@ if __name__ == '__main__':
     tracker.track(modes=([1,1,1,1]+[0]*8), state_mean=[1340, 1230, 1230, 1340, 900, 900], state_var=[0,0,0,0,0,0], N=30, observations=output_with_noise)
     elapsed = (time.clock() - start)
     print("Time used:", elapsed)
-    for i in range(5):
-        tracker.plot(i)
-    tracker.plot_mode()
+    tracker.plot_states()
+    tracker.plot_modes()
 
     print('Done')

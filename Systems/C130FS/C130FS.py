@@ -77,7 +77,7 @@ class C130FS:
     variables = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', \
                  'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
                  't1', 't2', 't3', 't4', 't5', 't6']
-    def __init__(self, sim=1):
+    def __init__(self, sim=1): # importance interface
         # Basic unit for simr is second.
         self.sim_rate = sim
         self.demand = np.array([60, 40, 50, 50]) / (60*10) * sim
@@ -167,7 +167,7 @@ class C130FS:
         vr = self.valve_i_mode_step(vr, [br4])
         return [v1, v2, v3, v4, vl, vr]
 
-    def fault_parameters(self, t, modes, fault_type=None, fault_time=None, fault_magnitude=None):
+    def fault_parameters(self, t, modes, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
         '''
         modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R    modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
            pump mode: close, open, failure => 0, 1, 2.
@@ -208,7 +208,7 @@ class C130FS:
             raise RuntimeError('Unknown Component!')
         return modes, fault_parameters
 
-    def mode_step(self, mode_i, state_i):
+    def mode_step(self, mode_i, state_i): # importance interface
         mode_p = mode_i[0:6]
         mode_v = mode_i[6:12]
         mode_p = self.pump_mode_step(mode_p, state_i)
@@ -216,7 +216,7 @@ class C130FS:
         mode_ip1 = mode_p + mode_v
         return mode_ip1, state_i
 
-    def state_step(self, mode_ip1, state_i, fault_parameters):
+    def state_step(self, mode_ip1, state_i, fault_parameters): # importance interface
         '''
         Forward one time step based on current modes and states
         '''
@@ -264,11 +264,11 @@ class C130FS:
             n_tank = add_noise(n_tank, self.state_disturb)
         return n_tank
 
-    def output(self, mode, states):
+    def output(self, mode, states): # importance interface
         out = states[:]
         return out
 
-    def run(self, init=[1340, 1230, 1230, 1340, 900, 900], t=0, fault_type=None, fault_time=None, fault_magnitude=None):
+    def run(self, init=[1340, 1230, 1230, 1340, 900, 900], t=0, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
         state = init if not self.states else self.states[-1]
         mode = ([1,1,1,1]+[0]*8) if not self.modes else self.modes[-1]
         i = 0
@@ -276,7 +276,7 @@ class C130FS:
             i += 1
             t = i*self.sim_rate
             mode, fault_para = self.fault_parameters(t, mode, fault_type, fault_time, fault_magnitude)
-            mode = self.mode_step(mode, state)
+            mode, state = self.mode_step(mode, state)
             state = self.state_step(mode, state, fault_para)
             output = self.output(mode, state)
             self.modes.append(mode)
@@ -292,56 +292,72 @@ class C130FS:
     def np_outputs(self):
         return np.array(self.outputs)
 
-    def np_data(self):
+    def np_data(self): # importance interface
         modes = np.array(self.modes)
         states = np.array(self.states)
         data = np.concatenate((modes, states), 1)
         return data
 
-    def show_tanks(self):
+    def plot_states(self, states=None): # importance interface
         '''
         Show the fuel in the tanks.
         '''
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
-        fig.suptitle('Fuel in tanks')  # Add a title so we know which it is
-        data = self.np_states()
+        fig.suptitle('System States')  # Add a title so we know which it is
+        data = self.np_states() if states is None else states
         x = np.arange(len(data))*self.sim_rate
         ax_lst[0, 0].plot(x, data[:, 0]) # Tank 1
+        ax_lst[0, 0].set_ylabel(C130FS.states[0])
         ax_lst[1, 0].plot(x, data[:, 1]) # Tank 2
+        ax_lst[1, 0].set_ylabel(C130FS.states[1])
         ax_lst[2, 0].plot(x, data[:, 4]) # Tank left auxiliary
-        ax_lst[0, 1].plot(x, data[:, 2]) # Tank 3
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel(C130FS.states[4])
+        ax_lst[0, 1].plot(x, data[:, 2]) # Tank 
+        ax_lst[0, 1].set_ylabel(C130FS.states[2])
         ax_lst[1, 1].plot(x, data[:, 3]) # Tank 4
+        ax_lst[1, 1].set_ylabel(C130FS.states[3])
         ax_lst[2, 1].plot(x, data[:, 5]) # Tank right auxiliary
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel(C130FS.states[5])
         plt.show()
 
-    def show_pumps(self):
-        '''
-        Show the modes of pumps.
-        '''
+    def plot_modes(self, modes=None): # importance interface
+        # pumps
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
-        fig.suptitle('Pump inner modes')  # Add a title so we know which it is
-        data = self.np_modes()
+        fig.suptitle('Pump Modes')  # Add a title so we know which it is
+        data = self.np_modes() if modes is None else modes
         x = np.arange(len(data))*self.sim_rate
         ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('p1')
         ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('p2')
         ax_lst[2, 0].plot(x, data[:, 4])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('p5')
         ax_lst[0, 1].plot(x, data[:, 2])
+        ax_lst[0, 1].set_ylabel('p3')
         ax_lst[1, 1].plot(x, data[:, 3])
+        ax_lst[1, 1].set_ylabel('p4')
         ax_lst[2, 1].plot(x, data[:, 5])
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel('p6')
         plt.show()
-
-    def show_valves(self):
-        '''
-        Show the modes of valves.
-        '''
+        # valves
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
-        fig.suptitle('valve inner modes')  # Add a title so we know which it is
-        data = self.np_modes()
-        x = np.arange(len(data))*self.sim_rate
-        ax_lst[0, 0].plot(x, data[:, 6])
-        ax_lst[1, 0].plot(x, data[:, 7])
-        ax_lst[2, 0].plot(x, data[:, 8])
-        ax_lst[0, 1].plot(x, data[:, 9])
-        ax_lst[1, 1].plot(x, data[:, 10])
-        ax_lst[2, 1].plot(x, data[:, 11])
+        fig.suptitle('Valve Modes')  # Add a title so we know which it is
+        ax_lst[0, 0].plot(x, data[:, 6+0])
+        ax_lst[0, 0].set_ylabel('v1')
+        ax_lst[1, 0].plot(x, data[:, 6+1])
+        ax_lst[1, 0].set_ylabel('v2')
+        ax_lst[2, 0].plot(x, data[:, 6+4])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('v5')
+        ax_lst[0, 1].plot(x, data[:, 6+2])
+        ax_lst[0, 1].set_ylabel('v3')
+        ax_lst[1, 1].plot(x, data[:, 6+3])
+        ax_lst[1, 1].set_ylabel('v4')
+        ax_lst[2, 1].plot(x, data[:, 6+5])
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel('v6')
         plt.show()

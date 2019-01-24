@@ -104,6 +104,12 @@ class hs_system_wrapper:
     def output(self, mode, states):
         return self.hs.output(mode, states)
 
+    def plot_states(self, states):
+        self.hs.plot_states(states)
+
+    def plot_modes(self, modes):
+        self.hs.plot_modes(modes)
+
 class chi2_hpf:
     def __init__(self, hsw=hs_system_wrapper()):
         # The default parameter of hsw has no significance
@@ -166,34 +172,14 @@ class chi2_hpf:
             best.append(best_ptc.state_values)
         return np.array(best)
 
-    def average_trajectory(self):
-        average = []
-        for particles in self.tracjectory:
-            state = np.zeros(len(self.hsw.pv))
-            for p in particles:
-                state += p.weight*p.state_values
-            average.append(state)
-        return np.array(average)
+    def plot_states(self):
+        data = self.best_trajectory()
+        self.hsw.plot_states(data)
 
-    def plot(self, index, averge=False):
-        if averge:
-            data = self.average_trajectory()
-        else:
-            data = self.best_trajectory()
-        plt.plot(data[:, index])
-        plt.show()
-
-    def plot_mode(self):
-        mode = []
+    def plot_modes(self):
+        modes = []
         for ptcs in self.tracjectory:
             best_ptc = max(ptcs, key=lambda p: p.weight)
-            mode.append(best_ptc.mode_values)
-        mode = np.array(mode)
-        if len(mode.shape)==1:
-            plt.plot(mode)
-            plt.show()
-        else:
-            _, n = mode.shape
-            for i in range(n):
-                plt.plot(mode[:,i])
-                plt.show()
+            modes.append(best_ptc.mode_values)
+        modes = np.array(modes)
+        self.hsw.plot_modes(modes)
