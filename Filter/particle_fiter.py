@@ -4,6 +4,7 @@ This document implementes some particle filter algorithms.
 import threading
 import numpy as np
 import matplotlib.pyplot as plt
+from concurrent.futures import ThreadPoolExecutor
 from scipy.stats import chi2
 
 def chi2_confidence(x, df):
@@ -125,7 +126,7 @@ class chi2_hpf:
             particles.append(ptc)
         return particles
 
-    def step_particle(self, ptc, particles, obs, lock=None):
+    def step_particle(self, ptc, obs):
         p = ptc.clone()
         # one step based on the partical
         modes, para_fault = self.hsw.fault_parameters(p.mode_values, p.fault_type, p.fault_magnitude)
@@ -140,46 +141,41 @@ class chi2_hpf:
         res = (obs - output)**2/self.hsw.ov
         Pobs = chi2_confidence(np.sum(res), len(res))
         p.set_weigth(p.weight*Pobs)
-        if lock is None:
-            particles.append(p)
-        else:
-            lock.acquire()
-            particles.append(p)
-            lock.release()
+        return p
 
-    def step(self, particles, obs):
+    def step(self, particles, obs, pool=None):
         '''
         particles: hybrid_particle list
         '''
         particles_ip1 = []
         for ptc in particles:
-            self.step_particle(ptc, particles_ip1, obs)
+            p = self.step_particle(ptc, obs)
+            particles_ip1.append(p)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
         return re_particles_ip1
 
-    def parallel_step(self, particles, obs):
+    def parallel_step(self, particles, obs, pool):
         '''
         particles: hybrid_particle list
         '''
         particles_ip1 = []
         thread = []
-        shared_resource_lock = threading.Lock()
         for ptc in particles:
-            t = threading.Thread(target=self.step_particle , args=(ptc, particles_ip1, obs, shared_resource_lock))
-            t.start()
+            t = pool.submit(self.step_particle, ptc, obs)
             thread.append(t)
         for t in thread:
-            t.join()
+            p = t.result()
+            particles_ip1.append(p)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
         return re_particles_ip1
 
     def track(self, modes, state_mean, state_var, N, observations, parallel=False):
-        step = self.step if not parallel else self.parallel_step
+        pool, step = (ThreadPoolExecutor(8), self.parallel_step) if parallel else (None, self.step)
         for obs in observations:
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
-            particles_ip1 = step(particles, obs)
+            particles_ip1 = step(particles, obs, pool)
             self.tracjectory.append(particles_ip1)
 
     def best_trajectory(self):
