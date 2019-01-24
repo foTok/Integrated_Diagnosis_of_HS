@@ -172,7 +172,7 @@ class chi2_hpf:
         return re_particles_ip1
 
     def track(self, modes, state_mean, state_var, N, observations, parallel=False):
-        pool, step = (Pool(4), self.parallel_step) if parallel else (None, self.step)
+        pool, step = (Pool(8), self.parallel_step) if parallel else (None, self.step)
         for obs in observations:
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
             particles_ip1 = step(particles, obs, pool)
