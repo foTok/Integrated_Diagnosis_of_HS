@@ -124,8 +124,7 @@ class chi2_hpf:
             particles.append(ptc)
         return particles
 
-    def step_particle(self, args):
-        ptc, obs = args
+    def step_particle(self, ptc, obs):
         p = ptc.clone()
         # one step based on the partical
         modes, para_fault = self.hsw.fault_parameters(p.mode_values, p.fault_type, p.fault_magnitude)
@@ -148,7 +147,7 @@ class chi2_hpf:
         '''
         particles_ip1 = []
         for ptc in particles:
-            p = self.step_particle((ptc, obs))
+            p = self.step_particle(ptc, obs)
             particles_ip1.append(p)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
