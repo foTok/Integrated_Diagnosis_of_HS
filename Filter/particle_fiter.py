@@ -188,5 +188,12 @@ class chi2_hpf:
         for ptcs in self.tracjectory:
             best_ptc = max(ptcs, key=lambda p: p.weight)
             mode.append(best_ptc.mode_values)
-        plt.plot(np.array(mode))
-        plt.show()
+        mode = np.array(mode)
+        if len(mode.shape)==1:
+            plt.plot(mode)
+            plt.show()
+        else:
+            _, n = mode.shape
+            for i in range(n):
+                plt.plot(mode[:,i])
+                plt.show()

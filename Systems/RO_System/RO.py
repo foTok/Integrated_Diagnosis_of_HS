@@ -33,17 +33,18 @@ class RO:
     outputs = ['q_fp', 'p_tr', 'q_rp', 'e_Cbrine', 'e_Ck']
     # vars
     variables = ['mode', 'q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
-    def __init__(self, step_len):
+    def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory
         self.modes  = []
         self.states = []
+        self.outputs = []
         self.state_disturb = None
 
-    def set_state_disturb(self, disturb):
+    def set_state_disturb(self, disturb): # important interface
         self.state_disturb = disturb
 
-    def fault_parameters(self, t, mode, fault_type=None, fault_time=None, fault_magnitude=None):
+    def fault_parameters(self, t, mode, fault_type=None, fault_time=None, fault_magnitude=None): # important interface
         if (fault_time is None) or (t <= fault_time):
             return mode, [0, 0, 0]
         if fault_type==3 or fault_type==4 or fault_type==5:
@@ -57,7 +58,7 @@ class RO:
         else:
             raise RuntimeError('Unknown Fault.')
 
-    def run(self, init_state, t, fault_type=None, fault_time=None, fault_magnitude=None):
+    def run(self, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None):
         i = 1
         mode_i = None
         state_i = init_state
@@ -72,7 +73,7 @@ class RO:
             self.states.append(state_i)
             self.outputs.append(output_i)
 
-    def mode_step(self, mode_i, state_i):
+    def mode_step(self, mode_i, state_i): # important interface
         h1 = 28.6770
         h2 = 17.2930
         h3 = 0.0670
@@ -96,7 +97,7 @@ class RO:
             pass # keep the mode
         return mode_ip1, state_i
 
-    def state_step(self, mode_ip1, state_i, fault_parameters):
+    def state_step(self, mode_ip1, state_i, fault_parameters): # important interface
         if (mode_ip1 % 3) == 0:
             _sigma1, _sigma2 = 1, 0
         elif (mode_ip1 % 3) == 1:
@@ -158,7 +159,7 @@ class RO:
             states_ip1 = add_noise(states_ip1, self.state_disturb)
         return states_ip1
 
-    def output(self, mode, states):
+    def output(self, mode, states): # important interface
         q_fp, p_tr, q_rp, _, e_Cbrine, e_Ck = states
         return [q_fp, p_tr, q_rp, e_Cbrine, e_Ck]
 
@@ -171,7 +172,7 @@ class RO:
     def np_outputs(self):
         return np.array(self.outputs)
 
-    def np_data(self):
+    def np_data(self): # important interface
         modes = np.array(self.modes)
         states = np.array(self.states)
         modes = modes.reshape(len(modes), 1)
