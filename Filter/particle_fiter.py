@@ -1,11 +1,8 @@
 '''
 This document implementes some particle filter algorithms.
 '''
-import time
 import numpy as np
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
-from multiprocessing import Lock
 from scipy.stats import chi2
 
 def chi2_confidence(x, df):
@@ -127,7 +124,8 @@ class chi2_hpf:
             particles.append(ptc)
         return particles
 
-    def step_particle(self, ptc, particles, obs):
+    def step_particle(self, args):
+        ptc, obs = args
         p = ptc.clone()
         # one step based on the partical
         modes, para_fault = self.hsw.fault_parameters(p.mode_values, p.fault_type, p.fault_magnitude)
@@ -144,42 +142,23 @@ class chi2_hpf:
         p.set_weigth(p.weight*Pobs)
         return p
 
-    def step(self, particles, obs, pool=None):
+    def step(self, particles, obs):
         '''
         particles: hybrid_particle list
         '''
         particles_ip1 = []
         for ptc in particles:
-            p = self.step_particle(ptc, particles_ip1, obs)
+            p = self.step_particle((ptc, obs))
             particles_ip1.append(p)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
         return re_particles_ip1
 
-    def parallel_step(self, particles, obs, pool):
-        '''
-        particles: hybrid_particle list
-        '''
-        particles_ip1 = []
-        results = []
-        for ptc in particles:
-            r = pool.apply_async(self.step_particle, args=(ptc, particles_ip1, obs))
-            results.append(r)
-        for r in results:
-            particles_ip1.append(r.get())
-        normalize(particles_ip1)
-        re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
-        return re_particles_ip1
-
-    def track(self, modes, state_mean, state_var, N, observations, parallel=False):
-        pool, step = (Pool(8), self.parallel_step) if parallel else (None, self.step)
+    def track(self, modes, state_mean, state_var, N, observations):
         for obs in observations:
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
-            particles_ip1 = step(particles, obs, pool)
+            particles_ip1 = self.step(particles, obs)
             self.tracjectory.append(particles_ip1)
-        if pool is not None:
-            pool.join()
-            pool.close()
 
     def best_trajectory(self):
         best = []
