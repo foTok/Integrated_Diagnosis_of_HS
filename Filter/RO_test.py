@@ -15,8 +15,8 @@ from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
 
 if __name__ == '__main__':
-    si = 0.001
-    process_snr = 70
+    si = 0.01
+    process_snr = 60
     obs_snr = 20
     data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
     data_mana = data_manager(data_cfg)
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     ov = obtain_var(output, obs_snr)
 
     ro = RO(si)
-    ro.set_state_disturb(pv)
+    # ro.set_state_disturb(pv)
     hsw = hs_system_wrapper(ro, pv*1.2, ov*1.2)
     tracker = chi2_hpf(hsw)
     start = time.clock()

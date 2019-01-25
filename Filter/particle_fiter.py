@@ -1,9 +1,14 @@
 '''
 This document implementes some particle filter algorithms.
 '''
+import os
+import sys
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
+sys.path.insert(0,parentdir)
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import chi2
+from utilities.utilities import smooth
 
 def chi2_confidence(x, df):
     '''
@@ -176,10 +181,11 @@ class chi2_hpf:
         data = self.best_trajectory()
         self.hsw.plot_states(data)
 
-    def plot_modes(self):
+    def plot_modes(self, N=10):
         modes = []
         for ptcs in self.tracjectory:
             best_ptc = max(ptcs, key=lambda p: p.weight)
             modes.append(best_ptc.mode_values)
         modes = np.array(modes)
+        modes = smooth(modes, N)
         self.hsw.plot_modes(modes)

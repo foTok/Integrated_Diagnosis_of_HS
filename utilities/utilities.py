@@ -28,3 +28,15 @@ def obtain_var(data, snr_pro):
         var = np.var(data, 0)
         var = var*ratio
     return var
+
+def smooth(data, N):
+    '''
+    smooth discrete data in a 1d np.array by 1 order hold.
+    '''
+    new_data = data[:]
+    if N<=1:
+        return new_data
+    for i in range(len(data)):
+        if not (data[i:i+N]==data[i]).all():
+            new_data[i] = new_data[i-1] if i>0 else new_data[i]
+    return new_data
