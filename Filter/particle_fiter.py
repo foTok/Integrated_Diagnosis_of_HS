@@ -48,8 +48,8 @@ def resample(particles, N):
     for s in samples:
         i = index(s, interval)
         ptc = particles[i].clone()
+        ptc.weight = 1/N
         new_partiles.append(ptc)
-    normalize(new_partiles)
     return new_partiles
 
 class hybrid_particle:
@@ -178,7 +178,7 @@ class hpf:
         min_res = min(res)
         return re_particles_ip1, min_res
 
-    def track(self, modes, state_mean, state_var, N, observations):
+    def track(self, modes, state_mean, state_var, observations, N):
         bar = progressbar.ProgressBar(max_value=100)
         obs_len = len(observations)
         for i, obs in zip(range(obs_len), observations):
@@ -188,6 +188,7 @@ class hpf:
             self.res.append(res)
             bar.update(float('%.2f'%((i+1)*100/obs_len)))
         bar.update(100)
+        progressbar.streams.flush()
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
