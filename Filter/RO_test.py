@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # ro.set_state_disturb(pv)
     hsw = hs_system_wrapper(ro, pv, ov*1.5)
     tracker = hpf(hsw)
-    tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=100, Nmax=150)
+    tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=50, Nmax=150)
     tracker.plot_states()
     tracker.plot_modes()
     tracker.plot_res()
