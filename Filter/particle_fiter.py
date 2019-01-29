@@ -99,14 +99,17 @@ class hs_system_wrapper:
     '''
     def the interface of hs_system for filter
     '''
-    def __init__(self, hs=None, process_var=None, obs_var=None):
+    def __init__(self, hs, process_var, obs_var):
         self.hs = hs
+        self.step_len = hs.step_len
         self.pv = process_var # np.array
         self.ov = obs_var     # np.array
-        self.p_std = None if process_var is None else np.sqrt(process_var)# np.array
 
     def fault_parameters(self, mode, fault_type, fault_magnitude):
         return self.hs.fault_parameters(0, mode, fault_type, 1, fault_magnitude)
+
+    def close2switch(self, modes, states):
+        return self.hs.close2switch(modes, states)
 
     def mode_step(self, mode_i, state_i):
         return self.hs.mode_step(mode_i, state_i)
@@ -124,15 +127,16 @@ class hs_system_wrapper:
         self.hs.plot_modes(modes)
 
 class hpf:
-    def __init__(self, hsw=hs_system_wrapper(), conf=chi2_confidence):
-        # The default parameter of hsw has no significance
-        # but help the text editor to find the right methods
-        # so that programming could be easier.
+    def __init__(self, hsw, conf=chi2_confidence):
+        self.N = None
+        self.Nmin = None
+        self.Nmax = None
+        self.confidence = conf
         self.hsw = hsw # hs_system_wrapper
         self.tracjectory = []
         self.res = []
-        self.Pobs = []
-        self.confidence = conf
+        self.states = []
+        self.modes = []
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -174,19 +178,30 @@ class hpf:
             particles_ip1.append(p)
             res.append(r)
         normalize(particles_ip1)
-        re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
-        min_res = min(res)
-        return re_particles_ip1, min_res
+        # min_res = min(res), ave_res = sum([p.weight*r for p, r in zip(particles_ip1, res)])
+        res = min(res)
+        re_particles_ip1 = resample(particles_ip1, self.N)
+        return re_particles_ip1, res
 
-    def track(self, modes, state_mean, state_var, observations, N):
+    def track(self, modes, state_mean, state_var, observations, Nmin, Nmax=None):
+        self.N = Nmin
+        self.Nmin = Nmin
+        self.Nmax = 2*Nmin if Nmax is None else Nmax
         bar = progressbar.ProgressBar(max_value=100)
         obs_len = len(observations)
         for i, obs in zip(range(obs_len), observations):
-            particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
+            particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
             particles_ip1, res = self.step(particles, obs)
+            ave_states = self.ave_states(particles_ip1)
+            probable_modes = self.probable_modes(particles_ip1)
+            self.N = self.Nmin if not self.hsw.close2switch(probable_modes, ave_states) else self.Nmax
+            self.states.append(ave_states)
+            self.modes.append(probable_modes)
             self.tracjectory.append(particles_ip1)
             self.res.append(res)
             bar.update(float('%.2f'%((i+1)*100/obs_len)))
+        self.states = np.array(self.states)
+        self.modes = np.array(self.modes)
         bar.update(100)
         progressbar.streams.flush()
 
@@ -205,24 +220,15 @@ class hpf:
         return probable_modes
 
     def plot_states(self):
-        states = []
-        for ptcs in self.tracjectory:
-            ave_ptc = self.ave_states(ptcs)
-            states.append(ave_ptc)
-        self.hsw.plot_states(np.array(states))
+        self.hsw.plot_states(self.states)
 
     def plot_modes(self, N=20):
-        modes = []
-        for ptcs in self.tracjectory:
-            probable_modes = self.probable_modes(ptcs)
-            modes.append(probable_modes)
-        modes = np.array(modes)
-        modes = smooth(modes, N)
+        modes = smooth(self.modes, N)
         self.hsw.plot_modes(modes)
 
     def plot_res(self):
         res = np.array(self.res)
-        x = np.arange(len(res))*self.hsw.hs.step_len
+        x = np.arange(len(res))*self.hsw.step_len
         plt.plot(x, res)
         plt.xlabel('Time/s')
         plt.ylabel('Residual')

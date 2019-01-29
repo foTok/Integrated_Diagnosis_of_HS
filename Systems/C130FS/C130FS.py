@@ -207,6 +207,9 @@ class C130FS:
         else:
             raise RuntimeError('Unknown Component!')
         return modes, fault_parameters
+    
+    def close2switch(self, mode, states):  # important interface
+        return False
 
     def mode_step(self, mode_i, state_i): # importance interface
         mode_p = mode_i[0:6]
