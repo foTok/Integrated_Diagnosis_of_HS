@@ -19,8 +19,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.system=='RO':
         # for debug
-        sample_int = 0.001
-        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\0')
+        sample_int = 0.01
+        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\1')
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         simulate(file_name, ro, sample_int=sample_int)
     elif args.system=='C130FS':
                 # for debug
-        sample_int = 1.0
+        sample_int = 0.1
         file_name = os.path.join(this_path, 'C130FS\\data\\debug\\0')
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):

@@ -6,6 +6,7 @@ import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
 sys.path.insert(0,parentdir)
 import numpy as np
+import progressbar
 import matplotlib.pyplot as plt
 from scipy.stats import chi2
 from utilities.utilities import smooth
@@ -17,6 +18,13 @@ def chi2_confidence(x, df):
     df is the freedom
     '''
     return 1 - chi2.cdf(x, df)
+
+def exp_confidence(x, df=None):
+    '''
+    exp(-r)
+    df: no significance, keep a consistent interface.
+    '''
+    return np.exp(-x)
 
 def normalize(particles):
     w = 0
@@ -115,13 +123,16 @@ class hs_system_wrapper:
     def plot_modes(self, modes):
         self.hs.plot_modes(modes)
 
-class chi2_hpf:
-    def __init__(self, hsw=hs_system_wrapper()):
+class hpf:
+    def __init__(self, hsw=hs_system_wrapper(), conf=chi2_confidence):
         # The default parameter of hsw has no significance
         # but help the text editor to find the right methods
         # so that programming could be easier.
         self.hsw = hsw # hs_system_wrapper
         self.tracjectory = []
+        self.res = []
+        self.Pobs = []
+        self.confidence = conf
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -148,44 +159,70 @@ class chi2_hpf:
         output = self.hsw.output(modes, states)
         # compute Pobs
         res = (obs - output)**2/self.hsw.ov
-        Pobs = chi2_confidence(np.sum(res), len(res))
+        Pobs = self.confidence(np.sum(res), len(res))
         p.set_weigth(p.weight*Pobs)
-        return p
+        return p, np.sqrt(np.sum(res))
 
     def step(self, particles, obs):
         '''
         particles: hybrid_particle list
         '''
         particles_ip1 = []
+        res = []
         for ptc in particles:
-            p = self.step_particle(ptc, obs)
+            p, r = self.step_particle(ptc, obs)
             particles_ip1.append(p)
+            res.append(r)
         normalize(particles_ip1)
         re_particles_ip1 = resample(particles_ip1, len(particles_ip1))
-        return re_particles_ip1
+        min_res = min(res)
+        return re_particles_ip1, min_res
 
     def track(self, modes, state_mean, state_var, N, observations):
-        for obs in observations:
+        bar = progressbar.ProgressBar(max_value=100)
+        obs_len = len(observations)
+        for i, obs in zip(range(obs_len), observations):
             particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, N)
-            particles_ip1 = self.step(particles, obs)
+            particles_ip1, res = self.step(particles, obs)
             self.tracjectory.append(particles_ip1)
+            self.res.append(res)
+            bar.update(float('%.2f'%((i+1)*100/obs_len)))
+        bar.update(100)
 
-    def best_trajectory(self):
-        best = []
-        for ptcs in self.tracjectory:
-            best_ptc = max(ptcs, key=lambda p: p.weight)
-            best.append(best_ptc.state_values)
-        return np.array(best)
+    def ave_states(self, ptcs):
+        return sum([p.weight*p.state_values for p in ptcs])
+
+    def probable_modes(self, ptcs):
+        mode_dict = {}
+        for p in ptcs:
+            tuple_p = tuple(p.mode_values) if not isinstance(p.mode_values, int) else p.mode_values
+            if tuple_p not in mode_dict:
+                mode_dict[tuple_p] = p.weight
+            else:
+                mode_dict[tuple_p] += p.weight
+        probable_modes = max(mode_dict, key=lambda p: mode_dict[p])
+        return probable_modes
 
     def plot_states(self):
-        data = self.best_trajectory()
-        self.hsw.plot_states(data)
+        states = []
+        for ptcs in self.tracjectory:
+            ave_ptc = self.ave_states(ptcs)
+            states.append(ave_ptc)
+        self.hsw.plot_states(np.array(states))
 
-    def plot_modes(self, N=10):
+    def plot_modes(self, N=20):
         modes = []
         for ptcs in self.tracjectory:
-            best_ptc = max(ptcs, key=lambda p: p.weight)
-            modes.append(best_ptc.mode_values)
+            probable_modes = self.probable_modes(ptcs)
+            modes.append(probable_modes)
         modes = np.array(modes)
         modes = smooth(modes, N)
         self.hsw.plot_modes(modes)
+
+    def plot_res(self):
+        res = np.array(self.res)
+        x = np.arange(len(res))*self.hsw.hs.step_len
+        plt.plot(x, res)
+        plt.xlabel('Time/s')
+        plt.ylabel('Residual')
+        plt.show()

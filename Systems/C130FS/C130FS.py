@@ -77,11 +77,11 @@ class C130FS:
     variables = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', \
                  'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
                  't1', 't2', 't3', 't4', 't5', 't6']
-    def __init__(self, sim=1): # importance interface
-        # Basic unit for simr is second.
-        self.sim_rate = sim
-        self.demand = np.array([60, 40, 50, 50]) / (60*10) * sim
-        self.R = np.array([4]*6)*(60*10)/sim
+    def __init__(self, step_len=1): # importance interface
+        # Basic unit for step len is second.
+        self.step_len = step_len
+        self.demand = np.array([60, 40, 50, 50]) / (60*10) * step_len
+        self.R = np.array([4]*6)*(60*10)/step_len
         # control parameters
         self.balance_begin = 200
         self.balance_end = 50
@@ -274,7 +274,7 @@ class C130FS:
         i = 0
         while sum(mode[0:6])!=0:
             i += 1
-            t = i*self.sim_rate
+            t = i*self.step_len
             mode, fault_para = self.fault_parameters(t, mode, fault_type, fault_time, fault_magnitude)
             mode, state = self.mode_step(mode, state)
             state = self.state_step(mode, state, fault_para)
@@ -305,7 +305,7 @@ class C130FS:
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('System States')  # Add a title so we know which it is
         data = self.np_states() if states is None else states
-        x = np.arange(len(data))*self.sim_rate
+        x = np.arange(len(data))*self.step_len
         ax_lst[0, 0].plot(x, data[:, 0]) # Tank 1
         ax_lst[0, 0].set_ylabel(C130FS.states[0])
         ax_lst[1, 0].plot(x, data[:, 1]) # Tank 2
@@ -327,7 +327,7 @@ class C130FS:
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('Pump Modes')  # Add a title so we know which it is
         data = self.np_modes() if modes is None else modes
-        x = np.arange(len(data))*self.sim_rate
+        x = np.arange(len(data))*self.step_len
         ax_lst[0, 0].plot(x, data[:, 0])
         ax_lst[0, 0].set_ylabel('p1')
         ax_lst[1, 0].plot(x, data[:, 1])
