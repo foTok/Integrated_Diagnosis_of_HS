@@ -187,23 +187,24 @@ class hpf:
         self.N = Nmin
         self.Nmin = Nmin
         self.Nmax = 2*Nmin if Nmax is None else Nmax
-        bar = progressbar.ProgressBar(max_value=100)
-        obs_len = len(observations)
-        for i, obs in zip(range(obs_len), observations):
-            particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
-            particles_ip1, res = self.step(particles, obs)
-            ave_states = self.ave_states(particles_ip1)
-            probable_modes = self.probable_modes(particles_ip1)
-            self.N = self.Nmin if not self.hsw.close2switch(probable_modes, ave_states) else self.Nmax
-            self.states.append(ave_states)
-            self.modes.append(probable_modes)
-            self.tracjectory.append(particles_ip1)
-            self.res.append(res)
-            bar.update(float('%.2f'%((i+1)*100/obs_len)))
-        self.states = np.array(self.states)
-        self.modes = np.array(self.modes)
-        bar.update(100)
-        progressbar.streams.flush()
+        progressbar.streams.wrap_stderr()
+        with progressbar.ProgressBar(max_value=100) as bar:
+            obs_len = len(observations)
+            for i, obs in zip(range(obs_len), observations):
+                particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
+                particles_ip1, res = self.step(particles, obs)
+                ave_states = self.ave_states(particles_ip1)
+                probable_modes = self.probable_modes(particles_ip1)
+                self.N = self.Nmin if not self.hsw.close2switch(probable_modes, ave_states) else self.Nmax
+                self.states.append(ave_states)
+                self.modes.append(probable_modes)
+                self.tracjectory.append(particles_ip1)
+                self.res.append(res)
+                bar.update(float('%.2f'%((i+1)*100/obs_len)))
+            self.states = np.array(self.states)
+            self.modes = np.array(self.modes)
+            bar.update(100)
+            progressbar.streams.flush()
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])

@@ -82,7 +82,7 @@ class RO:
             return True
         elif (mode==1 or mode==2) and abs(p-h2)<2:
             return True
-        elif (mode==2 or mode==0) and abs(p-h3)<2:
+        elif (mode==2 or mode==0) and abs(p-h3)<5:
             return True
         else:
             return False
