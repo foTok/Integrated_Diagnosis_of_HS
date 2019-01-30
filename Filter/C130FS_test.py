@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import time
 from particle_fiter import hs_system_wrapper
 from particle_fiter import hpf
+from particle_fiter import chi2_confidence
+from particle_fiter import exp_confidence
 from Systems.data_manager import data_manager
 from Systems.C130FS.C130FS import C130FS
 from utilities.utilities import obtain_var
