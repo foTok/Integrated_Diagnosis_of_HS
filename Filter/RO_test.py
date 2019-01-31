@@ -18,9 +18,9 @@ from utilities.utilities import obtain_var
 
 if __name__ == '__main__':
     si = 0.01
-    process_snr = 35
+    process_snr = 50
     obs_snr = 20
-    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
+    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\8.cfg'
     data_mana = data_manager(data_cfg)
     data_mana.set_sample_int(si)
     state = data_mana.select_states(0)
@@ -33,9 +33,10 @@ if __name__ == '__main__':
 
     ro = RO(si)
     # ro.set_state_disturb(pv)
-    hsw = hs_system_wrapper(ro, pv, ov*1.5)
+    hsw = hs_system_wrapper(ro, pv, ov)
     tracker = hpf(hsw)
     tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=100, Nmax=150)
     tracker.plot_states()
     tracker.plot_modes()
     tracker.plot_res()
+    tracker.plot_Z()

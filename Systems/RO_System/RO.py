@@ -193,7 +193,7 @@ class RO:
         data = np.concatenate((modes, states), 1)
         return data
 
-    def plot_states(self, states=None):
+    def plot_states(self, states=None): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('System States')  # Add a title so we know which it is
         data = self.np_states() if states is None else states
@@ -220,10 +220,57 @@ class RO:
         ax_lst[2, 1].set_ylabel(RO.states[5])
         plt.show()
 
-    def plot_modes(self, modes=None):
+    def plot_modes(self, modes=None): # important interface
         data = self.np_modes() if modes is None else modes
         x = np.arange(len(data))*self.step_len
         plt.plot(x, data)
         plt.xlabel('Time/s')
         plt.ylabel('Mode')
+        plt.title('System Modes')
+        plt.show()
+
+    def plot_res(self, data): # important interface
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
+        fig.suptitle('Residuals')  # Add a title so we know which it is
+        x = np.arange(len(data))*self.step_len
+        # 0
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('r1')
+        # 1
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('r2')
+        # 2
+        ax_lst[2, 0].plot(x, data[:, 2])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('r3')
+        # 3
+        ax_lst[0, 1].plot(x, data[:, 3])
+        ax_lst[0, 1].set_ylabel('r4')
+        # 4
+        ax_lst[1, 1].plot(x, data[:, 4])
+        ax_lst[1, 1].set_ylabel('r5')
+        ax_lst[1, 1].set_xlabel('Time/s')
+        plt.show()
+
+    def plot_Z(self, data): # important interface
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
+        fig.suptitle('Z values')  # Add a title so we know which it is
+        x = np.arange(len(data))*self.step_len
+        # 0
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('z1')
+        # 1
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('z2')
+        # 2
+        ax_lst[2, 0].plot(x, data[:, 2])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('z3')
+        # 3
+        ax_lst[0, 1].plot(x, data[:, 3])
+        ax_lst[0, 1].set_ylabel('z4')
+        # 4
+        ax_lst[1, 1].plot(x, data[:, 4])
+        ax_lst[1, 1].set_ylabel('z5')
+        ax_lst[1, 1].set_xlabel('Time/s')
         plt.show()

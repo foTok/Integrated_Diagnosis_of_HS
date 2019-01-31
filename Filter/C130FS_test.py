@@ -33,9 +33,10 @@ if __name__ == '__main__':
 
     c130fs = C130FS(si)
     # c130fs.set_state_disturb(pv)
-    hsw = hs_system_wrapper(c130fs, pv, ov*1.5)
+    hsw = hs_system_wrapper(c130fs, pv, ov)
     tracker = hpf(hsw)
-    tracker.track(modes=([1,1,1,1]+[0]*8), state_mean=[1340, 1230, 1230, 1340, 900, 900], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=50)
+    tracker.track(modes=([1,1,1,1]+[0]*8), state_mean=[1340, 1230, 1230, 1340, 900, 900], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=10)
     tracker.plot_states()
     tracker.plot_modes(200)
     tracker.plot_res()
+    tracker.plot_Z()

@@ -19,8 +19,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.system=='RO':
         # for debug
-        sample_int = 0.01
-        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\1')
+        sample_int = 0.001
+        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\0')
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):
             os.makedirs(path)

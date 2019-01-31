@@ -305,7 +305,7 @@ class C130FS:
         '''
         Show the fuel in the tanks.
         '''
-        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('System States')  # Add a title so we know which it is
         data = self.np_states() if states is None else states
         x = np.arange(len(data))*self.step_len
@@ -327,7 +327,7 @@ class C130FS:
 
     def plot_modes(self, modes=None): # importance interface
         # pumps
-        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Pump Modes')  # Add a title so we know which it is
         data = self.np_modes() if modes is None else modes
         x = np.arange(len(data))*self.step_len
@@ -347,7 +347,7 @@ class C130FS:
         ax_lst[2, 1].set_ylabel('p6')
         plt.show()
         # valves
-        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Valve Modes')  # Add a title so we know which it is
         ax_lst[0, 0].plot(x, data[:, 6+0])
         ax_lst[0, 0].set_ylabel('v1')
@@ -363,4 +363,44 @@ class C130FS:
         ax_lst[2, 1].plot(x, data[:, 6+5])
         ax_lst[2, 1].set_xlabel('Time/s')
         ax_lst[2, 1].set_ylabel('v6')
+        plt.show()
+
+    def plot_res(self, data): # important interface
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
+        fig.suptitle('Residuals')  # Add a title so we know which it is
+        x = np.arange(len(data))*self.step_len
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('r1')
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('r2')
+        ax_lst[2, 0].plot(x, data[:, 4])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('r5')
+        ax_lst[0, 1].plot(x, data[:, 2])
+        ax_lst[0, 1].set_ylabel('r3')
+        ax_lst[1, 1].plot(x, data[:, 3])
+        ax_lst[1, 1].set_ylabel('r4')
+        ax_lst[2, 1].plot(x, data[:, 5])
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel('r6')
+        plt.show()
+
+    def plot_Z(self, data): # important interface
+        fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
+        fig.suptitle('Z values')  # Add a title so we know which it is
+        x = np.arange(len(data))*self.step_len
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('z1')
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('z2')
+        ax_lst[2, 0].plot(x, data[:, 4])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('z5')
+        ax_lst[0, 1].plot(x, data[:, 2])
+        ax_lst[0, 1].set_ylabel('z3')
+        ax_lst[1, 1].plot(x, data[:, 3])
+        ax_lst[1, 1].set_ylabel('z4')
+        ax_lst[2, 1].plot(x, data[:, 5])
+        ax_lst[2, 1].set_xlabel('Time/s')
+        ax_lst[2, 1].set_ylabel('z6')
         plt.show()

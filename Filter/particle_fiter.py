@@ -9,6 +9,8 @@ import numpy as np
 import progressbar
 import matplotlib.pyplot as plt
 from scipy.stats import chi2
+from scipy.stats import norm
+from Fault_diagnosis.fault_detector import Z_test
 from utilities.utilities import smooth
 
 def chi2_confidence(x, df):
@@ -21,10 +23,10 @@ def chi2_confidence(x, df):
 
 def exp_confidence(x, df=None):
     '''
-    exp(-r)
+    exp(-0.5*r^2), x=r^2
     df: no significance, keep a consistent interface.
     '''
-    return np.exp(-x)
+    return np.exp(-0.5*x)
 
 def normalize(particles):
     w = 0
@@ -126,6 +128,12 @@ class hs_system_wrapper:
     def plot_modes(self, modes):
         self.hs.plot_modes(modes)
 
+    def plot_res(self, res):
+        self.hs.plot_res(res)
+
+    def plot_Z(self, res):
+        self.hs.plot_Z(res)
+
 class hpf:
     def __init__(self, hsw, conf=chi2_confidence):
         self.N = None
@@ -137,6 +145,7 @@ class hpf:
         self.res = []
         self.states = []
         self.modes = []
+        self.Z = []
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -162,10 +171,10 @@ class hpf:
         p.set_hs(modes, states)
         output = self.hsw.output(modes, states)
         # compute Pobs
-        res = (obs - output)**2/self.hsw.ov
-        Pobs = self.confidence(np.sum(res), len(res))
+        res = (obs - output)/np.sqrt(self.hsw.ov) # residual square
+        Pobs = self.confidence(np.sum(res**2), len(res))
         p.set_weigth(p.weight*Pobs)
-        return p, np.sqrt(np.sum(res))
+        return p, res
 
     def step(self, particles, obs):
         '''
@@ -178,8 +187,7 @@ class hpf:
             particles_ip1.append(p)
             res.append(r)
         normalize(particles_ip1)
-        # min_res = min(res), ave_res = sum([p.weight*r for p, r in zip(particles_ip1, res)])
-        res = min(res)
+        res = np.sum([p.weight*r for p, r in zip(particles_ip1, res)], 0)
         re_particles_ip1 = resample(particles_ip1, self.N)
         return re_particles_ip1, res
 
@@ -200,6 +208,8 @@ class hpf:
                 self.modes.append(probable_modes)
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
+                z = Z_test(self.res, 1000, 10)
+                self.Z.append(z)
                 bar.update(float('%.2f'%((i+1)*100/obs_len)))
             self.states = np.array(self.states)
             self.modes = np.array(self.modes)
@@ -229,8 +239,9 @@ class hpf:
 
     def plot_res(self):
         res = np.array(self.res)
-        x = np.arange(len(res))*self.hsw.step_len
-        plt.plot(x, res)
-        plt.xlabel('Time/s')
-        plt.ylabel('Residual')
-        plt.show()
+        self.hsw.plot_res(res)
+
+    def plot_Z(self, N=20):
+        Z = np.array(self.Z)
+        Z = smooth(Z, N)
+        self.hsw.plot_Z(Z)
