@@ -54,29 +54,30 @@ class C130FS:
     The class to simulate C130 fuel system behavior.
     states: height: 1, 2, 3, 4, L, R
     modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
-           pump mode: close, open, failure => 0, 1, 2.
-                      open ~ sigma = 1; close, failure ~ sigma = 0
+           pump mode: close, open => 0, 1.
+                      open ~ sigma = 1; close ~ sigma = 0
            mode valve: close, open, s_close, s_open => 0, 1, 2, 3
                       close, s_close ~ sigma = 0; open, s_open => sigma = 1
-    fault parameters: pump 1,2,3,4,L,R + tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
+    fault parameters: tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
     '''
-    modes = {'p1':['close', 'open', 'failure'],
-             'p2':['close', 'open', 'failure'],
-             'p3':['close', 'open', 'failure'],
-             'p4':['close', 'open', 'failure'],
-             'p5':['close', 'open', 'failure'],
-             'p6':['close', 'open', 'failure'],
-             'v1':['close', 'open', 's_close', 's_open'],
-             'v2':['close', 'open', 's_close', 's_open'],
-             'v3':['close', 'open', 's_close', 's_open'],
-             'v4':['close', 'open', 's_close', 's_open'],
-             'v5':['close', 'open', 's_close', 's_open'],
-             'v6':['close', 'open', 's_close', 's_open']}
+    modes = {'p1':['close', 'open'],
+             'p2':['close', 'open'],
+             'p3':['close', 'open'],
+             'p4':['close', 'open'],
+             'p5':['close', 'open'],
+             'p6':['close', 'open'],
+             'v1':['close', 'open', 's_close'],
+             'v2':['close', 'open', 's_close'],
+             'v3':['close', 'open', 's_close'],
+             'v4':['close', 'open', 's_close'],
+             'v5':['close', 'open', 's_close'],
+             'v6':['close', 'open', 's_close']}
     states = ['t1', 't2', 't3', 't4', 't5', 't6']
     outputs = ['t1', 't2', 't3', 't4', 't5', 't6']
     variables = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', \
                  'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
                  't1', 't2', 't3', 't4', 't5', 't6']
+    fault_parameters = ['leak_1', 'leak_2', 'leak_3', 'leak_4', 'leak_L', 'leak_R']
     def __init__(self, step_len=1): # importance interface
         # Basic unit for step len is second.
         self.step_len = step_len
@@ -169,45 +170,42 @@ class C130FS:
 
     def fault_parameters(self, t, modes, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
         '''
-        modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R    modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
-           pump mode: close, open, failure => 0, 1, 2.
-                      open ~ sigma = 1; close, failure ~ sigma = 0
-           mode valve: close, open, s_close, s_open => 0, 1, 2, 3
-                      close, s_close ~ sigma = 0; open, s_open => sigma = 1
-        fault parameters: pump 1,2,3,4,L,R + tank 1,2,3,4,L,R + valve 1,2,3,4,L,R
-        fault_type: a list, [component_type, fault_type, id]
+        modes: pump 1,2,3,4,L,R + valve 1,2,3,4,L,R
+           pump mode: close, open, => 0, 1.
+                      open ~ sigma = 1; close ~ sigma = 0
+           valve mode: close, open, s_close => 0, 1, 2
+                      close, s_close ~ sigma = 0; open => sigma = 1
+        fault parameters: tank 1,2,3,4,L,R
+        fault_type: a string
         '''
-        fault_free_parameter = [0]*6 + [float('inf')]*6 + [0]*6
+        fault_free_parameter = [0]*6
         if (fault_type is None) or (t <= fault_time):
             return modes, fault_free_parameter
         modes = modes[:]
-        fault_parameters = fault_free_parameter[:]
-        component_type, fault_type, id = fault_type
-        if component_type=='pump':
-            if fault_type=='fail':
-                modes[id] = 2
-            elif fault_type=='leak':
-                fault_parameters[id] = fault_magnitude
+        fault_parameters = fault_free_parameter
+        if fault_type.startswith('leak'):
+            fault_magnitude = fault_magnitude / (60*10) * self.step_len
+            if fault_type.endswith('L'):
+                fault_parameters[4] = fault_magnitude
+            elif fault_type.endswith('R'):
+                fault_parameters[5] = fault_magnitude
             else:
-                raise RuntimeError('Unknown Pump Fault.')
-        elif component_type=='tank':
-            if fault_type=='leak':
-                fault_parameters[6+id] = fault_magnitude
+                id = int(fault_type[-1])
+                assert 1<=id<=4
+                fault_parameters[id-1] = fault_magnitude
+        elif fault_type.startswith('stuck'):
+            if fault_type.endswith('L'):
+                modes[6+4] = 2
+            elif fault_type.endswith('R'):
+                modes[6+5] = 2
             else:
-                raise RuntimeError('Unknown Tank Error.')
-        elif component_type=='valve':
-            if fault_type=='s_close':
-                modes[6+id] = 2
-            elif fault_type=='s_open':
-                modes[6+id] = 3
-            elif fault_type=='p_stuck':
-                fault_parameters[12+id] = fault_magnitude
-            else:
-                raise RuntimeError('Unknown Valve Fault.')
+                id = int(fault_type[-1])
+                assert 1<=id<=4
+                modes[6+id-1] = 2
         else:
             raise RuntimeError('Unknown Component!')
         return modes, fault_parameters
-    
+
     def close2switch(self, mode, states):  # important interface
         return False
 
@@ -225,15 +223,12 @@ class C130FS:
         '''
         mode_ip1 = np.array(mode_ip1)
         state_i = np.array(state_i)
-        fault_parameters = np.array(fault_parameters)
         sigma_p = mode_ip1[0:6]
         sigma_v = mode_ip1[6:12]
         tank = state_i
-        f_p = fault_parameters[0:6]
-        f_t = fault_parameters[6:12]
-        f_v = fault_parameters[12:18]
+        f_t = fault_parameters
         # R
-        R_v = self.R + f_v
+        R_v = self.R
         T = 0
         if sum(sigma_v)!=0:
             R = 0
@@ -250,19 +245,17 @@ class C130FS:
         # Pump i
         pump = [0]*6
         for i in range(4):# For pump1~pump4
-            pump[i] = sigma_p[i] * self.demand[i] * (1 - f_p[i])
+            pump[i] = sigma_p[i] * self.demand[i]
         # For the left auxiliary pump
         pump[-2] = sigma_p[-2]*\
-                  ((1 - sigma_p[0])*self.demand[0] + (1 - sigma_p[1])*self.demand[1])*\
-                  (1 - f_p[-2])
+                  ((1 - sigma_p[0])*self.demand[0] + (1 - sigma_p[1])*self.demand[1])
         # For the right auxiliary pump
         pump[-1] = sigma_p[-1]*\
-                  ((1 - sigma_p[2])*self.demand[2] + (1 - sigma_p[3])*self.demand[3])*\
-                  (1 - f_p[-1])
+                  ((1 - sigma_p[2])*self.demand[2] + (1 - sigma_p[3])*self.demand[3])
         # Tank i
         n_tank = [0]*6
         for i in range(6):
-            n_tank[i] = tank[i] + valve[i] - pump[i] - tank[i] / f_t[i]
+            n_tank[i] = tank[i] + valve[i] - pump[i] - tank[i] * f_t[i]
         if self.state_disturb is not None:
             n_tank = add_noise(n_tank, self.state_disturb)
         return n_tank

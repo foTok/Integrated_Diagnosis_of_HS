@@ -20,9 +20,8 @@ if __name__ == '__main__':
     si = 1
     process_snr = 60
     obs_snr = 20
-    data_cfg = parentdir + '\\Systems\\C130FS\\data\\debug\\0.cfg'
-    data_mana = data_manager(data_cfg)
-    data_mana.set_sample_int(si)
+    data_cfg = parentdir + '\\Systems\\C130FS\\data\\debug\\2.cfg'
+    data_mana = data_manager(data_cfg, si)
     state = data_mana.select_states(0)
     state_with_noise = data_mana.select_states(0, process_snr)
     output = data_mana.select_outputs(0)
@@ -32,10 +31,9 @@ if __name__ == '__main__':
     ov = obtain_var(output, obs_snr)
 
     c130fs = C130FS(si)
-    # c130fs.set_state_disturb(pv)
     hsw = hs_system_wrapper(c130fs, pv, ov)
     tracker = hpf(hsw)
-    tracker.track(modes=([1,1,1,1]+[0]*8), state_mean=[1340, 1230, 1230, 1340, 900, 900], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=10)
+    tracker.track(modes=([1,1,1,1]+[0]*8), state_mean=[1340, 1230, 1230, 1340, 900, 900], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=20)
     tracker.plot_states()
     tracker.plot_modes(200)
     tracker.plot_res()

@@ -4,11 +4,12 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 import pickle
+import random
 import numpy as np
 from utilities.utilities import add_noise
 
 class term:
-    def __init__(self, file_name, fault_type=None, fault_magnitude=None, fault_time=None):
+    def __init__(self, file_name, fault_type=None, fault_time=None, fault_magnitude=None):
         '''
         filename: str
         fault_type: None, int or str.
@@ -19,14 +20,14 @@ class term:
         '''
         self.file_name = os.path.basename(file_name)
         self.fault_type = fault_type
-        self.fault_magnitude = fault_magnitude
         self.fault_time = fault_time
+        self.fault_magnitude = fault_magnitude
 
 class cfg:
-    def __init__(self, mode_names, state_names, output_names, variable_names, sample_int):
+    def __init__(self, mode_names, state_names, output_names, variable_names, fault_para_names, sample_int):
         '''
         filename: str
-        mode_names: a list of str, the names of modes
+        mode_names: a list or dict of str, the names of modes
         state_names: a list of str, the names of states
         output_names: a list of str, the names of outputs
         sample_int: real, sample interval
@@ -35,6 +36,7 @@ class cfg:
         self.state_names = state_names
         self.output_names = output_names
         self.variable_names = variable_names
+        self.fault_para_names = fault_para_names
         self.sample_int = sample_int
         self.terms = []
 
@@ -59,24 +61,25 @@ class data_manager:
     Mode 2 is used to sample some data so that we can train and test 
     ANNs.
     '''
-    def __init__(self, cfg_file):
+    def __init__(self, cfg_file, si=1.0):
+        # load config file
         path = os.path.dirname(cfg_file)
-        self.sample_int = 1.0
         with open(cfg_file, 'rb') as f:
             cfg = pickle.load(f)
         self.cfg = cfg
         self.data = []
+        tmp_label_set = set()
         for term in self.cfg.terms:
             data_file = os.path.join(path, term.file_name)
             data_file = data_file if data_file.endswith('.npy') else data_file+'.npy'
             data = np.load(data_file)
             self.data.append(data)
-
-    def set_sample_int(self, si):
-        # the new sample rate must be integer times the orginal one
+            tmp_label_set.add('normal' if term.fault_type is None else term.fault_type)
+        self.labels = tuple(tmp_label_set) # fix the order
+        # set sample step len
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
-  
+
     def select_states(self, index, snr_or_pro=None):
         '''
         select all the states of the index_th file
@@ -104,6 +107,15 @@ class data_manager:
         outputs_with_noise = add_noise(outputs, snr_or_pro)
         return outputs_with_noise
 
+    def select_modes(self, index):
+        data = self.data[index]
+        modes_index = [self.cfg.variable_names.index(name) for name in self.cfg.mode_names]
+        modes = data[:,modes_index]
+        x = np.arange(0, len(modes), int(self.sample_int/self.cfg.sample_int))
+        x = x[1:]
+        modes = modes[x, :]
+        return modes
+
     def get_info(self, index, prt=True):
         '''
         get the information of the index_th file
@@ -117,5 +129,68 @@ class data_manager:
                   .format(fault_type, fault_magnitude, fault_time))
         return fault_type, fault_magnitude, fault_time
 
-    # TODO
-    # sample data for ANN.
+    def get_labels(self):
+        return self.labels
+
+    def sample(self, size, window, limit, normal_proportion):
+        '''
+        size:
+            int, the number of sampled data.
+        window:
+            int, the lenght of each data point.
+        limit:
+            a tuple with two ints, (n1, n2).
+            n1 means we have to make sure there are at least n1 data come before the fault time.
+            n2 is similar.
+            n1+n2 < window
+        normal_proportion:
+            float between 0 and 1, the proportion of the normal mode
+        '''
+        assert sum(limit) < window
+        label_size = len(self.labels) # if label_size is one, it must be normal
+        assert label_size >= 1
+        fault_size = 0 if label_size==1 else int(size*(1-normal_proportion)/(label_size-1))
+        normal_size = int(size - fault_size) # make sure it is an int
+        # hs0: the initial hybrid states, the input of classifiers,
+        # x: system outputs, the input of classifiers,
+        # m: modes, the output of classifiers,
+        # y: states, the output of classifiers, 
+        # p: the fault parameters, the output of classifiers.
+        hs0, x, m, y, p = [], [], [], [], []
+        for label in self.labels:
+            # 1. find all indexes with this label
+            indexes = []
+            for i, term in enumerate(self.cfg.terms):
+                l = 'normal' if term.fault_type is None else str(term.fault_type)
+                if l==label:
+                    indexes.append(i)
+            # 2. select one file randomly in iteration
+            iter_size = normal_size if label=='normal' else fault_size
+            for _ in range(iter_size):
+                i = indexes[random.randint(0, len(indexes)-1)]
+                term = self.cfg.terms[i]
+                outputs_i = self.select_outputs(i)
+                states_i = self.select_states(i)
+                modes_i = self.select_modes(i)
+            # 3. pick out data in a window
+                if label=='normal':
+                    l1, l2 = 0, len(outputs_i)-window
+                else:
+                    fault_i = int(term.fault_time / self.sample_int)
+                    l1, l2 = fault_i + limit[0] - window, fault_i - limit[0]
+                start = random.randint(l1, l2)
+                _hs0 = np.concatenate((modes_i[start-1], states_i[start-1])) # hs0
+                outputs = outputs_i[start:start+window, :] # x
+                modes = modes_i[start:start+window, :] # m
+                states = states_i[start:start+window, :] # y
+                _p = [0]*len(self.cfg.fault_para_names) # p
+                if term.fault_type in self.cfg.fault_para_names:
+                    _p[self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                # store them
+                hs0.append(_hs0)
+                x.append(outputs)
+                m.append(modes)
+                y.append(states)
+                p.append(_p)
+        hs0, x, m, y, p = np.array(hs0), np.array(x), np.array(m), np.array(y), np.array(p)
+        return hs0, x, m, y, p

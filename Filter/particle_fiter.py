@@ -35,13 +35,25 @@ def normalize(particles):
     for ptc in particles:
         ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
 
-def resample(particles, N):
-    def index(s, interval):
-        for i, t in zip(range(len(interval)-1), interval[1:]):
-            if s < t:
-                return i
-        return -1
+def index(s, interval):
+    for i, t in zip(range(len(interval)-1), interval[1:]):
+        if s < t:
+            return i
+    return -1
 
+def dis_sample(dis, N=1): # discrete sample
+    interval = [0]
+    for p in dis:
+        interval.append(interval[-1]+p)
+    rand_num = np.random.uniform(interval[0], interval[-1], N)
+    samples = []
+    for r in rand_num:
+        i = index(r, interval)
+        samples.append(i)
+    return samples
+
+def resample(particles, N=None):
+    N = len(particles) if N is None else N
     interval = [0]
     for ptc in particles:
         interval.append(interval[-1]+ptc.weight)
@@ -134,7 +146,7 @@ class hs_system_wrapper:
     def plot_Z(self, res):
         self.hs.plot_Z(res)
 
-class hpf:
+class hpf: # hybrid particle filter
     def __init__(self, hsw, conf=chi2_confidence):
         self.N = None
         self.Nmin = None
@@ -191,14 +203,25 @@ class hpf:
         re_particles_ip1 = resample(particles_ip1, self.N)
         return re_particles_ip1, res
 
+    def fault_detect(self, N=50):
+        if len(self.Z)<N:
+            return False
+        Z = np.array(self.Z)[-1-N:-1, :]
+        Z = [(z==1).all() for z in Z]
+        return sum(Z)>=1
+
+    def fault_identifier(self):
+        pass
+
     def track(self, modes, state_mean, state_var, observations, Nmin, Nmax=None):
         self.N = Nmin
         self.Nmin = Nmin
         self.Nmax = 2*Nmin if Nmax is None else Nmax
         progressbar.streams.wrap_stderr()
         with progressbar.ProgressBar(max_value=100) as bar:
-            obs_len = len(observations)
-            for i, obs in zip(range(obs_len), observations):
+            i, obs_len = 0, len(observations)
+            while i < obs_len:
+                obs = observations[i]
                 particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
                 particles_ip1, res = self.step(particles, obs)
                 ave_states = self.ave_states(particles_ip1)
@@ -211,6 +234,7 @@ class hpf:
                 z = Z_test(self.res, 1000, 10)
                 self.Z.append(z)
                 bar.update(float('%.2f'%((i+1)*100/obs_len)))
+                i += 1
             self.states = np.array(self.states)
             self.modes = np.array(self.modes)
             bar.update(100)
@@ -233,7 +257,7 @@ class hpf:
     def plot_states(self):
         self.hsw.plot_states(self.states)
 
-    def plot_modes(self, N=20):
+    def plot_modes(self, N=50):
         modes = smooth(self.modes, N)
         self.hsw.plot_modes(modes)
 
@@ -241,7 +265,7 @@ class hpf:
         res = np.array(self.res)
         self.hsw.plot_res(res)
 
-    def plot_Z(self, N=20):
+    def plot_Z(self, N=50):
         Z = np.array(self.Z)
         Z = smooth(Z, N)
         self.hsw.plot_Z(Z)

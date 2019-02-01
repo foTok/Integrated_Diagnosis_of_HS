@@ -12,24 +12,22 @@ if __name__ == "__main__":
     si = 0.001
     process_snr = 1000
     data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
-    data_mana = data_manager(data_cfg)
-    data_mana.set_sample_int(si)
+    data_mana = data_manager(data_cfg, si)
     state = data_mana.select_states(0)
     pv = obtain_var(state, process_snr)
     # show something
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--sample_int", type=float,  help="the sample interval")
-    parser.add_argument("-f", "--fault", type=str, choices=['s0', 's1', 's2', 'f_f', 'f_r', 'f_m'], help="the fault type")
+    parser.add_argument("-f", "--fault", type=str, choices=['stuck_1', 'stuck_2', 'stuck_3', 'f_f', 'f_r', 'f_m'], help="the fault type")
     parser.add_argument("-m", "--magnitude", type=float, help="fault magnitude")
     parser.add_argument("-t", "--fault_time", type=float, help="fault time")
     parser.add_argument("-l", "--length", type=float, help="simulation length")
     args = parser.parse_args()
 
-    faults = {'s0':3, 's1':4, 's2':5, 'f_f':'f_f', 'f_r':'f_r', 'f_m':'f_m'}
     states  = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     init_state = [0, 0, 0, 0, 0, 0]
     sample_int = args.sample_int if args.sample_int is not None else 0.001
-    fault_type = faults[args.fault] if args.fault is not None else None
+    fault_type = args.fault
     length = args.length if args.length is not None else 300
 
     ro = RO(sample_int) # 0.01 is the maximal available sample interval

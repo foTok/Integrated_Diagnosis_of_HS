@@ -26,13 +26,15 @@ class RO:
     p_fp    = 1.0 # N/m^2
     p_rp    = 160.0 # N/m^2
     # modes
-    modes = ['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']
+    modes = {'mode':['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']}
     # states
     states = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # outputs
     outputs = ['q_fp', 'p_tr', 'q_rp', 'e_Cbrine', 'e_Ck']
     # vars
     variables = ['mode', 'q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
+    # fault parameters
+    fault_parameters = ['f_f', 'f_m', 'f_r']
     def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory
@@ -45,10 +47,14 @@ class RO:
         self.state_disturb = disturb
 
     def fault_parameters(self, t, mode, fault_type=None, fault_time=None, fault_magnitude=None): # important interface
-        if (fault_time is None) or (t <= fault_time):
+        if (fault_time is None) or (t <= fault_time): # no fault
             return mode, [0, 0, 0]
-        if fault_type==3 or fault_type==4 or fault_type==5:
-            return fault_type, [0, 0, 0]
+        if fault_type=='s_normal':
+            return 3, [0, 0, 0]
+        elif fault_type=='s_pressure':
+            return 4, [0, 0, 0]
+        elif fault_type=='s_reverse':
+            return 5, [0, 0, 0]
         elif fault_type=='f_f':
             return mode, [fault_magnitude, 0, 0]
         elif fault_type=='f_r':

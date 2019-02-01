@@ -20,9 +20,8 @@ if __name__ == '__main__':
     si = 0.01
     process_snr = 50
     obs_snr = 20
-    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\8.cfg'
-    data_mana = data_manager(data_cfg)
-    data_mana.set_sample_int(si)
+    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
+    data_mana = data_manager(data_cfg, si)
     state = data_mana.select_states(0)
     state_with_noise = data_mana.select_states(0, process_snr)
     output = data_mana.select_outputs(0)
@@ -32,10 +31,9 @@ if __name__ == '__main__':
     ov = obtain_var(output, obs_snr)
 
     ro = RO(si)
-    # ro.set_state_disturb(pv)
     hsw = hs_system_wrapper(ro, pv, ov)
     tracker = hpf(hsw)
-    tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=100, Nmax=150)
+    tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=150, Nmax=150)
     tracker.plot_states()
     tracker.plot_modes()
     tracker.plot_res()

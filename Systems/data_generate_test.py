@@ -8,7 +8,7 @@ from data_manager import term
 
 this_path = os.path.dirname(os.path.abspath(__file__))
 
-def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.001, fault_type=None, fault_time=None, fault_magnitude=None):
+def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.001, fault_type='s_reverse', fault_time=20, fault_magnitude=0):
     model.run(init_state, t, fault_type, fault_time, fault_magnitude)
     data = model.np_data()
     np.save(file_name, data)
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     if args.system=='RO':
         # for debug
         sample_int = 0.001
-        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\0')
+        file_name = os.path.join(this_path, 'RO_System\\data\\debug\\10')
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     elif args.system=='C130FS':
                 # for debug
         sample_int = 0.1
-        file_name = os.path.join(this_path, 'C130FS\\data\\debug\\0')
+        file_name = os.path.join(this_path, 'C130FS\\data\\debug\\2')
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):
             os.makedirs(path)
