@@ -77,7 +77,7 @@ class C130FS:
     variables = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', \
                  'v1', 'v2', 'v3', 'v4', 'v5', 'v6', \
                  't1', 't2', 't3', 't4', 't5', 't6']
-    fault_parameters = ['leak_1', 'leak_2', 'leak_3', 'leak_4', 'leak_L', 'leak_R']
+    f_parameters = ['leak_1', 'leak_2', 'leak_3', 'leak_4', 'leak_L', 'leak_R']
     def __init__(self, step_len=1): # importance interface
         # Basic unit for step len is second.
         self.step_len = step_len
@@ -205,9 +205,6 @@ class C130FS:
         else:
             raise RuntimeError('Unknown Component!')
         return modes, fault_parameters
-
-    def close2switch(self, mode, states):  # important interface
-        return False
 
     def mode_step(self, mode_i, state_i): # importance interface
         mode_p = mode_i[0:6]

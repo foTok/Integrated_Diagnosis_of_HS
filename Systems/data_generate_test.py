@@ -25,7 +25,7 @@ if __name__ == "__main__":
         if not os.path.isdir(path):
             os.makedirs(path)
         ro = RO(sample_int)
-        cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, sample_int)
+        cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.f_parameters, sample_int)
         cfg.add_term(term(file_name))
         cfg.save(file_name)
         simulate(file_name, ro, sample_int=sample_int)
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         if not os.path.isdir(path):
             os.makedirs(path)
         c130fs = C130FS(sample_int)
-        cfg = cfg(C130FS.modes, C130FS.states, C130FS.outputs, C130FS.variables, sample_int)
+        cfg = cfg(C130FS.modes, C130FS.states, C130FS.outputs, C130FS.variables, C130FS.f_parameters, sample_int)
         cfg.add_term(term(file_name))
         cfg.save(file_name)
         simulate(file_name, c130fs, init_state=[1340, 1230, 1230, 1340, 900, 900], sample_int=sample_int)

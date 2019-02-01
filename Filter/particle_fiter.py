@@ -226,7 +226,6 @@ class hpf: # hybrid particle filter
                 particles_ip1, res = self.step(particles, obs)
                 ave_states = self.ave_states(particles_ip1)
                 probable_modes = self.probable_modes(particles_ip1)
-                self.N = self.Nmin if not self.hsw.close2switch(probable_modes, ave_states) else self.Nmax
                 self.states.append(ave_states)
                 self.modes.append(probable_modes)
                 self.tracjectory.append(particles_ip1)

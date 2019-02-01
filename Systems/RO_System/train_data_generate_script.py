@@ -11,39 +11,56 @@ from RO import RO
 from Systems.data_manager import cfg
 from Systems.data_manager import term
 
-def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.001, fault_type=None, fault_time=None, fault_magnitude=None):
+def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01, fault_type=None, fault_time=None, fault_magnitude=None):
     model.run(init_state, t, fault_type, fault_time, fault_magnitude)
     data = model.np_data()
     np.save(file_name, data)
 
 if __name__ == "__main__":
+    debug = False
     this_path = os.path.dirname(os.path.abspath(__file__))
-    fault_time_list = range(90, 220, 5)
+    fault_time_list = {'s_normal': range(128, 190, 3), \
+                       's_pressure':range(65, 128, 3), \
+                       's_reverse':range(95, 162, 3), \
+                       'f_f':range(90, 220, 5), \
+                       'f_m':range(90, 220, 5), \
+                       'f_r':range(90, 220, 5)} if not debug else \
+                      {'s_normal': range(128, 190, 30), \
+                       's_pressure':range(65, 128, 30), \
+                       's_reverse':range(95, 162, 30), \
+                       'f_f':range(90, 220, 50), \
+                       'f_m':range(90, 220, 50), \
+                       'f_r':range(90, 220, 50)}
     fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_m', 'f_r']
-    fault_magnitude_list = np.arange(0.05, 0.505, 0.05)
-    file_num = len(fault_magnitude_list)*(3 + 3*len(fault_magnitude_list)) + 1
+    fault_magnitude_list = np.arange(0.05, 0.505, 0.05) if not debug else np.arange(0.05, 0.505, 0.25)
+    file_num = 1
+    for f in fault_type_list:
+        if f.startswith('s'):
+            file_num += len(fault_time_list[f])
+        else:
+            file_num += len(fault_time_list[f])*len(fault_magnitude_list)
     i = 0 # file index
-    sample_int = 0.001
+    sample_int = 0.01
     progressbar.streams.wrap_stderr()
     with progressbar.ProgressBar(max_value=100) as bar:
         # normal
-        file_name = os.path.join(this_path, 'data\\train\\{}'.format(i))
-        cfg_name = os.path.join(this_path, 'data\\train\\RO.cfg')
+        file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train' if not debug else 'debug', i))
+        cfg_name = os.path.join(this_path, 'data\\{}\\RO.cfg'.format('train' if not debug else 'debug'))
         i += 1
         bar.update(min(float('%.2f'%(i*100/file_num)), 100))
         path = os.path.dirname(file_name)
         if not os.path.isdir(path):
             os.makedirs(path)
-        the_cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.fault_parameters, sample_int)
+        the_cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.f_parameters, RO.labels, sample_int)
         the_cfg.add_term(term(file_name))
         ro = RO(sample_int)
         simulate(file_name, ro, sample_int=sample_int)
         # fault
         for fault_type in fault_type_list:
-            for fault_time in fault_time_list:
+            for fault_time in fault_time_list[fault_type]:
                 _fault_magnitude_list = [None] if fault_type.startswith('s') else fault_magnitude_list
                 for fault_magnitude in _fault_magnitude_list:
-                    file_name = os.path.join(this_path, 'data\\train\\{}'.format(i))
+                    file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train' if not debug else 'debug', i))
                     i += 1
                     bar.update(min(float('%.2f'%(i*100/file_num)), 100))
                     ro = RO(sample_int)

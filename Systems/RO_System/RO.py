@@ -34,7 +34,9 @@ class RO:
     # vars
     variables = ['mode', 'q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # fault parameters
-    fault_parameters = ['f_f', 'f_m', 'f_r']
+    f_parameters = ['f_f', 'f_m', 'f_r']
+    # labels
+    labels = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_m', 'f_r']
     def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory
@@ -78,20 +80,6 @@ class RO:
             self.modes.append(mode_i)
             self.states.append(state_i)
             self.outputs.append(output_i)
-
-    def close2switch(self, mode, states):  # important interface
-        h1 = 28.6770
-        h2 = 17.2930
-        h3 = 0.0670
-        p = states[3]
-        if (mode==0 or mode==1) and abs(p-h1)<2:
-            return True
-        elif (mode==1 or mode==2) and abs(p-h2)<2:
-            return True
-        elif (mode==2 or mode==0) and abs(p-h3)<5:
-            return True
-        else:
-            return False
 
     def mode_step(self, mode_i, state_i): # important interface
         h1 = 28.6770

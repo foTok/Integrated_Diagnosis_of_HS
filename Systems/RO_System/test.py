@@ -10,11 +10,6 @@ from utilities.utilities import obtain_var
 
 if __name__ == "__main__":
     si = 0.001
-    process_snr = 1000
-    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
-    data_mana = data_manager(data_cfg, si)
-    state = data_mana.select_states(0)
-    pv = obtain_var(state, process_snr)
     # show something
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--sample_int", type=float,  help="the sample interval")
@@ -31,23 +26,8 @@ if __name__ == "__main__":
     length = args.length if args.length is not None else 300
 
     ro = RO(sample_int) # 0.01 is the maximal available sample interval
-    ro.set_state_disturb(pv)
     ro.run(init_state, length, fault_type, args.fault_time, args.magnitude)
     ro.plot_states()
     ro.plot_modes()
-
-
-    # init_state = [0, 0, 0, 0, 0, 0]
-    # ro1 = RO(0.01)
-    # ro2 = RO(0.001)
-    # ro1.run(init_state, 300)
-    # ro2.run(init_state, 300)
-
-    # states1 = ro1.np_states()
-    # states2 = ro2.np_states()
-
-    # x2 = np.arange(10, len(states2)+1, 10)-1
-    # states2 = states2[x2,:]
-
 
 print('Done')

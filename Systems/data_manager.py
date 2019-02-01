@@ -4,7 +4,9 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 import pickle
+import torch
 import random
+import progressbar
 import numpy as np
 from utilities.utilities import add_noise
 
@@ -24,7 +26,7 @@ class term:
         self.fault_magnitude = fault_magnitude
 
 class cfg:
-    def __init__(self, mode_names, state_names, output_names, variable_names, fault_para_names, sample_int):
+    def __init__(self, mode_names, state_names, output_names, variable_names, fault_para_names, labels, sample_int):
         '''
         filename: str
         mode_names: a list or dict of str, the names of modes
@@ -37,6 +39,7 @@ class cfg:
         self.output_names = output_names
         self.variable_names = variable_names
         self.fault_para_names = fault_para_names
+        self.labels = labels
         self.sample_int = sample_int
         self.terms = []
 
@@ -68,14 +71,16 @@ class data_manager:
             cfg = pickle.load(f)
         self.cfg = cfg
         self.data = []
-        tmp_label_set = set()
-        for term in self.cfg.terms:
-            data_file = os.path.join(path, term.file_name)
-            data_file = data_file if data_file.endswith('.npy') else data_file+'.npy'
-            data = np.load(data_file)
-            self.data.append(data)
-            tmp_label_set.add('normal' if term.fault_type is None else term.fault_type)
-        self.labels = tuple(tmp_label_set) # fix the order
+        self.labels = tuple(self.cfg.labels) # fix the order
+        with progressbar.ProgressBar(max_value=100) as bar:
+            print('loading data...')
+            term_len = len(self.cfg.terms)
+            for i, term in enumerate(self.cfg.terms):
+                data_file = os.path.join(path, term.file_name)
+                data_file = data_file if data_file.endswith('.npy') else data_file+'.npy'
+                data = np.load(data_file)
+                self.data.append(data)
+                bar.update(float('%.2f'%((i+1)*100/term_len)))
         # set sample step len
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
@@ -132,6 +137,12 @@ class data_manager:
     def get_labels(self):
         return self.labels
 
+    def get_mode_size(self):
+        mode_size = []
+        for m in self.cfg.mode_names:
+            mode_size.append(len(self.cfg.mode_names[m]))
+        return mode_size
+
     def sample(self, size, window, limit, normal_proportion):
         '''
         size:
@@ -143,14 +154,17 @@ class data_manager:
             n1 means we have to make sure there are at least n1 data come before the fault time.
             n2 is similar.
             n1+n2 < window
+        *******both window and limit are set as second**********
         normal_proportion:
             float between 0 and 1, the proportion of the normal mode
         '''
         assert sum(limit) < window
+        window = int(window/self.sample_int)
+        limit = (int(limit[0]/self.sample_int), int(limit[1]/self.sample_int))
         label_size = len(self.labels) # if label_size is one, it must be normal
         assert label_size >= 1
         fault_size = 0 if label_size==1 else int(size*(1-normal_proportion)/(label_size-1))
-        normal_size = int(size - fault_size) # make sure it is an int
+        normal_size = int(size - fault_size*(len(self.labels) - 1)) # make sure it is an int
         # hs0: the initial hybrid states, the input of classifiers,
         # x: system outputs, the input of classifiers,
         # m: modes, the output of classifiers,
@@ -177,7 +191,7 @@ class data_manager:
                     l1, l2 = 0, len(outputs_i)-window
                 else:
                     fault_i = int(term.fault_time / self.sample_int)
-                    l1, l2 = fault_i + limit[0] - window, fault_i - limit[0]
+                    l1, l2 = fault_i + limit[1] - window, fault_i - limit[0]
                 start = random.randint(l1, l2)
                 _hs0 = np.concatenate((modes_i[start-1], states_i[start-1])) # hs0
                 outputs = outputs_i[start:start+window, :] # x
@@ -194,3 +208,21 @@ class data_manager:
                 p.append(_p)
         hs0, x, m, y, p = np.array(hs0), np.array(x), np.array(m), np.array(y), np.array(p)
         return hs0, x, m, y, p
+
+    def np2target(self, y):
+        '''
+        args:
+            y: batch × time × mode_num, np.array
+        '''
+        y_list = []
+        mode_size = self.get_mode_size()
+        batch, time, _ = y.shape
+        for i, size in enumerate(mode_size):
+            y_i = y[:, :, i]
+            y_torch_i = torch.zeros((batch, time, size))
+            for b in range(batch):
+                for t in range(time):
+                    k = int(y_i[b, t])
+                    y_torch_i[b, t, k] = 1
+            y_list.append(y_torch_i)
+        return y_list
