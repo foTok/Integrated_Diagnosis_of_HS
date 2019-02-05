@@ -20,7 +20,7 @@ if __name__ == '__main__':
     si = 0.01
     process_snr = 50
     obs_snr = 20
-    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\0.cfg'
+    data_cfg = parentdir + '\\Systems\\RO_System\\data\\debug\\RO.cfg'
     data_mana = data_manager(data_cfg, si)
     state = data_mana.select_states(0)
     state_with_noise = data_mana.select_states(0, process_snr)
