@@ -5,6 +5,7 @@ define a fault identifier
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from torch.autograd import Variable
 
 class fault_identifier(nn.Module):
@@ -21,6 +22,7 @@ class fault_identifier(nn.Module):
                 If fc is empty, the corresponding module will be designed from in to out directly.
                 If fc is not empty, the module will add extral layers.
         '''
+        super(fault_identifier, self).__init__()
         self.hs0_size = hs0_size
         self.x_size = x_size
         self.mode_size = mode_size
@@ -30,6 +32,7 @@ class fault_identifier(nn.Module):
         self.fc0_size = fc0_size
         self.fc1_size = fc1_size
         self.fc2_size = fc2_size
+        self.fc3_size = fc3_size
         hidden_size, num_layers = rnn_size
         # RNN module, which is the core component.
         self.rnn = nn.GRU(input_size=x_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout) # (batch, seq, feature).
@@ -53,7 +56,7 @@ class fault_identifier(nn.Module):
         self.fc21 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # mu
         self.ac21 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
         self.fc22 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # sigma
-        self.ac22 = nn.ModuleList([nn.ReLU() for _ in range(len(fc2_maps)-1)])
+        self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
         # FC3 module, which converts the inner states into system parameters.
         fc3_maps = [hidden_size]+ fc3_size + [para_size]
         self.fc31 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)]) # mu
@@ -68,12 +71,12 @@ class fault_identifier(nn.Module):
         '''
         hs0, x = x
         # h0
-        h0 = hs0
+        h0 = hs0.repeat(self.rnn_size[1], 1, 1)
         for l, a in zip(self.fc0, self.ac0):
             h0 = l(h0)
             h0 = a(h0)
         # RNN/GRU
-        hidden_states = self.rnn(x, h0)
+        hidden_states, _ = self.rnn(x, h0)
         # Modes
         modes = []
         for m, ma, sm in zip(self.fc1, self.ac1, self.sm1):
@@ -92,17 +95,18 @@ class fault_identifier(nn.Module):
         for l, a in zip(self.fc22, self.ac22):
             states_sigma = l(states_sigma)
             states_sigma = a(states_sigma)
+        states_sigma = torch.exp(states_sigma)
         # Paras
         paras_mu = hidden_states
         for l, a in zip(self.fc31, self.ac31):
             paras_mu = l(paras_mu)
             paras_mu = a(paras_mu)
-        paras_mu = torch.expm1(-paras_mu) # exp(-x)-1, then paras_mu is between 0 and 1
+        paras_mu = torch.exp(-paras_mu) # exp(-x), then paras_mu is between 0 and 1
         paras_sigma = hidden_states
         for l, a in zip(self.fc32, self.ac32):
             paras_sigma = l(paras_sigma)
             paras_sigma = a(paras_sigma)
-        paras_sigma = torch.expm1(-paras_sigma) # exp(-x)-1, then paras_sigma is between 0 and 1
+        paras_sigma = torch.exp(-paras_sigma) # exp(-x), then paras_sigma is between 0 and 1
         # modes, states and parameters
         return modes, (states_mu, states_sigma), (paras_mu, paras_sigma) 
 
@@ -114,8 +118,8 @@ def one_mode_cross_entropy(y_head, y):
     '''
     ce = - y * torch.log(y_head)
     ce = torch.sum(ce)
-    batch = y_head.size(0)
-    ce  = ce / batch
+    batch, t, _ = y_head.size()
+    ce  = ce / (batch*t)
     return ce
 
 def multi_mode_cross_entropy(y_head, y):
@@ -124,7 +128,22 @@ def multi_mode_cross_entropy(y_head, y):
         y_head: the prediceted values
         y: the real values
     '''
-    ce = torch.tensor(0)
+    ce = torch.tensor(0, dtype=torch.float)
     for y1, y0 in zip(y_head, y):
         ce += one_mode_cross_entropy(y1, y0)
     return ce
+
+def nlogP(mu, sigma, obs):
+    '''
+    -log(p) = (mu-obs)**2/(2*sigma**2) + log(sigma) + constant.
+    The constant is ignored.
+    '''
+    l1 = (mu-obs)**2/(2*sigma**2)
+    l2 = torch.log(sigma)
+    loss = l1 + l2
+    batch, t, _ = mu.size()
+    loss = torch.sum(loss) / (batch*t)
+    return loss
+
+def np2tensor(x):
+    return torch.tensor(x, dtype=torch.float)

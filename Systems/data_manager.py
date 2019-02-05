@@ -85,7 +85,7 @@ class data_manager:
         assert si/self.cfg.sample_int == int(si/self.cfg.sample_int)
         self.sample_int = si
 
-    def select_states(self, index, snr_or_pro=None):
+    def select_states(self, index, snr_or_pro=None, norm=None):
         '''
         select all the states of the index_th file
         '''
@@ -96,9 +96,11 @@ class data_manager:
         x = np.arange(interval, len(states)+1, interval)-1
         states = states[x, :]
         states_with_noise = add_noise(states, snr_or_pro)
+        if norm is not None:
+            states_with_noise = states_with_noise / norm
         return states_with_noise
 
-    def select_outputs(self, index, snr_or_pro=None):
+    def select_outputs(self, index, snr_or_pro=None, norm=None):
         '''
         select all the outputs of the index_th file
         '''
@@ -110,6 +112,8 @@ class data_manager:
         outputs = outputs[x, :]
         # add noise
         outputs_with_noise = add_noise(outputs, snr_or_pro)
+        if norm is not None:
+            outputs_with_noise = outputs_with_noise / norm
         return outputs_with_noise
 
     def select_modes(self, index):
@@ -143,7 +147,7 @@ class data_manager:
             mode_size.append(len(self.cfg.mode_names[m]))
         return mode_size
 
-    def sample(self, size, window, limit, normal_proportion):
+    def sample(self, size, window, limit, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None):
         '''
         size:
             int, the number of sampled data.
@@ -183,8 +187,8 @@ class data_manager:
             for _ in range(iter_size):
                 i = indexes[random.randint(0, len(indexes)-1)]
                 term = self.cfg.terms[i]
-                outputs_i = self.select_outputs(i)
-                states_i = self.select_states(i)
+                outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o)
+                states_i = self.select_states(i, norm=norm_s)
                 modes_i = self.select_modes(i)
             # 3. pick out data in a window
                 if label=='normal':
@@ -197,9 +201,11 @@ class data_manager:
                 outputs = outputs_i[start:start+window, :] # x
                 modes = modes_i[start:start+window, :] # m
                 states = states_i[start:start+window, :] # y
-                _p = [0]*len(self.cfg.fault_para_names) # p
+                # fault parameters
+                _p = np.zeros((window, len(self.cfg.fault_para_names)))
                 if term.fault_type in self.cfg.fault_para_names:
-                    _p[self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                    n0 = fault_i - start
+                    _p[n0:,self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
                 # store them
                 hs0.append(_hs0)
                 x.append(outputs)
