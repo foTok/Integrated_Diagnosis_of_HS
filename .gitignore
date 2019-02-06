@@ -1,7 +1,7 @@
-/.vscode
-/Decomposer/__pycache__
-/Systems/__pycache__
-*.pyc
-*.npy
+.vscode
+__pycache__
+debug
 data
+*.pyc
+*.npydata
 *.png

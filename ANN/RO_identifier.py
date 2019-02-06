@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from fault_identifier import fault_identifier
 from fault_identifier import multi_mode_cross_entropy
-from fault_identifier import nlogP
+from fault_identifier import normal_stochastic_loss
 from fault_identifier import np2tensor
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
@@ -46,8 +46,8 @@ def train(epoch, batch, data_mana, f_identifier, optimizer):
         modes, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
-        state_loss = nlogP(states_mu, states_sigma, np2tensor(y))
-        para_loss = nlogP(paras_mu, paras_sigma, np2tensor(p))
+        state_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
+        para_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
         loss = mode_loss + state_loss + para_loss
 
         train_loss.append(loss.item())

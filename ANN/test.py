@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from fault_identifier import fault_identifier
 from fault_identifier import multi_mode_cross_entropy
-from fault_identifier import nlogP
+from fault_identifier import normal_stochastic_loss
 from fault_identifier import np2tensor
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
@@ -40,9 +40,9 @@ if __name__ == '__main__':
 
     mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
 
-    state_loss = nlogP(states_mu, states_sigma, np2tensor(y))
+    state_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
 
-    para_loss = nlogP(paras_mu, paras_sigma, np2tensor(p))
+    para_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
 
     loss = mode_loss + state_loss + para_loss
 

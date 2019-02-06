@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from torch.distributions.normal import Normal
 from torch.autograd import Variable
 
 class fault_identifier(nn.Module):
@@ -133,16 +134,11 @@ def multi_mode_cross_entropy(y_head, y):
         ce += one_mode_cross_entropy(y1, y0)
     return ce
 
-def nlogP(mu, sigma, obs):
-    '''
-    -log(p) = (mu-obs)**2/(2*sigma**2) + log(sigma) + constant.
-    The constant is ignored.
-    '''
-    l1 = (mu-obs)**2/(2*sigma**2)
-    l2 = torch.log(sigma)
-    loss = l1 + l2
+def normal_stochastic_loss(mu, sigma, obs):
     batch, t, _ = mu.size()
-    loss = torch.sum(loss) / (batch*t)
+    m = Normal(mu, sigma)
+    sample = m.rsample()
+    loss = torch.sum((sample-obs)**2) / (batch*t)
     return loss
 
 def np2tensor(x):
