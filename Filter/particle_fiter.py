@@ -304,7 +304,7 @@ class hpf: # hybrid particle filter
             x = self.obs[-N:, :]
             # use ann to estimate
             modes, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
-            last_modes = modes[-1,:]
+            last_modes = [m[-1,:] for m in modes]
             last_states = (states_mu[-1,:], states_sigma[-1,:])
             last_paras = (paras_mu[-1,:], paras_sigma[-1,:])
             # reset the tracjectories based on estimated values
