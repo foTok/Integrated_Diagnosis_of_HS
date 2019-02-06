@@ -36,7 +36,7 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
         print(msg)
         running_loss[:] = np.zeros(4)
 
-def train(epoch, batch, data_mana, f_identifier, optimizer):
+def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
     train_loss = []
     running_loss = np.zeros(4)
     for i in range(epoch):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train
-    train_loss = train(epoch, batch, data_mana, f_identifier, optimizer)
+    train_loss = train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr)
     # save model
     save_model(f_identifier, save_path, model_name)
     # figure
