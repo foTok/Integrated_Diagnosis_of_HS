@@ -268,3 +268,19 @@ class RO:
         ax_lst[1, 1].set_ylabel('z5')
         ax_lst[1, 1].set_xlabel('Time/s')
         plt.show()
+
+    def plot_paras(self, data):
+        fig, ax_lst = plt.subplots(3, 1)  # A figure with a 3x2 grid of Axes
+        fig.suptitle('Fault parameters')  # Add a title so we know which it is
+        x = np.arange(len(data))*self.step_len
+        # 0
+        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].set_ylabel('f_f')
+        # 1
+        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].set_ylabel('f_m')
+        # 2
+        ax_lst[2, 0].plot(x, data[:, 2])
+        ax_lst[2, 0].set_xlabel('Time/s')
+        ax_lst[2, 0].set_ylabel('f_r')
+        plt.show()

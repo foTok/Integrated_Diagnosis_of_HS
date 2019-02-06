@@ -1,6 +1,8 @@
 .vscode
 __pycache__
 debug
+train
+test
 data
 *.pyc
 *.npydata

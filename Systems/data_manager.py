@@ -73,7 +73,7 @@ class data_manager:
         self.data = []
         self.labels = tuple(self.cfg.labels) # fix the order
         with progressbar.ProgressBar(max_value=100) as bar:
-            print('loading data...')
+            print('Loading data...')
             term_len = len(self.cfg.terms)
             for i, term in enumerate(self.cfg.terms):
                 data_file = os.path.join(path, term.file_name)
