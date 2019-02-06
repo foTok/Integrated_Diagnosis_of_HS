@@ -188,11 +188,15 @@ class hpf: # hybrid particle filter
             particles.append(ptc)
         return particles
 
-    def sample_particle_from_ann(self, modes, states, paras):
+    def sample_particle_from_ann(self, modes, states, paras, weight):
         modes, has_fault = self.sample_modes(modes)
         states = self.sample_states(states)
         paras = self.sample_paras(paras, has_fault)
-        return modes, states, paras
+        ptc = hybrid_particle(modes,\
+                              states,\
+                              paras,\
+                              weight)
+        return ptc
 
     def sample_modes(self, modes):
         has_fault = False
@@ -205,6 +209,7 @@ class hpf: # hybrid particle filter
             new_modes.append(sample)
             if mode_names[n][sample].startswith('s_'):
                 has_fault = True
+        new_modes = new_modes[0] if len(new_modes)==1 else np.array(new_modes)
         return new_modes, has_fault
 
     def sample_states(self, states):
@@ -310,8 +315,8 @@ class hpf: # hybrid particle filter
             # reset the tracjectories based on estimated values
             # TODO
             # resample particles from the estimated values
-            for _ in range(self.Nmax):
-                ptc = self.sample_particle_from_ann(last_modes, last_states, last_paras)
+            for _ in range(self.N):
+                ptc = self.sample_particle_from_ann(last_modes, last_states, last_paras, 1/self.N)
                 particles.append(ptc)
             return particles
 
