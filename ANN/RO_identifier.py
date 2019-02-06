@@ -72,16 +72,18 @@ def plot(train_loss, path, name):
 
 
 if __name__ == "__main__":
-    save_path =  os.path.join(this_path, 'RO\\debug')
+    debug = False
+    key = 'debug' if debug else 'train'
+    save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
-    model_name = 'ro_debug'
+    model_name = 'ro_{}'.format(key)
     epoch = 2000
     batch = 1000
     # data manager
     si = 0.01
     obs_snr = 20
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\debug\\RO.cfg')
+    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(key))
     data_mana = new_data_manager(data_cfg, si)
     # the model
     f_identifier = fault_identifier(hs0_size=7,\
