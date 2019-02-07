@@ -180,6 +180,7 @@ class hpf: # hybrid particle filter
 
     def load_identifier(self, file_name):
         self.identifier = torch.load(file_name)
+        self.identifier.eval()
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []

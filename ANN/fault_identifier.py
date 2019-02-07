@@ -9,8 +9,8 @@ import numpy as np
 from torch.distributions.normal import Normal
 from torch.autograd import Variable
 
-class fault_identifier(nn.Module):
-    def __init__(self, hs0_size, x_size, mode_size, state_size, para_size, rnn_size, fc0_size=[], fc1_size=[], fc2_size=[], fc3_size=[], dropout=0.5):
+class gru_fault_identifier(nn.Module):
+    def __init__(self, hs0_size, x_size, mode_size, state_size, para_size, rnn_size, fc0_size=[], fc1_size=[], fc2_size=[], fc3_size=[], fc4_size=[], dropout=0.5):
         '''
         Args:
             hs0_size: an int, the size of hybrid states, [m0, m1..., s0, s1...].
@@ -23,7 +23,7 @@ class fault_identifier(nn.Module):
                 If fc is empty, the corresponding module will be designed from in to out directly.
                 If fc is not empty, the module will add extral layers.
         '''
-        super(fault_identifier, self).__init__()
+        super(gru_fault_identifier, self).__init__()
         self.hs0_size = hs0_size
         self.x_size = x_size
         self.mode_size = mode_size
@@ -39,31 +39,43 @@ class fault_identifier(nn.Module):
         self.rnn = nn.GRU(input_size=x_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout) # (batch, seq, feature).
         # FC0 module, which converts the hs0 into initial inner states.
         fc0_maps = [hs0_size] + fc0_size + [hidden_size]
-        self.fc0 = nn.ModuleList([nn.Linear(fc0_maps[i], fc0_maps[i+1]) for i in range(len(fc0_maps)-1)])
-        self.ac0 = nn.ModuleList([nn.PReLU() for _ in range(len(fc0_maps)-1)])
+        self.fc0 = nn.ModuleList()
+        self.ac0 = nn.ModuleList()
+        for _ in range(self.rnn_size[1]):
+            fc0_tmp = nn.ModuleList([nn.Linear(fc0_maps[i], fc0_maps[i+1]) for i in range(len(fc0_maps)-1)])
+            ac0_tmp = nn.ModuleList([nn.PReLU() for _ in range(len(fc0_maps)-1)])
+            self.fc0.append(fc0_tmp)
+            self.ac0.append(ac0_tmp)
         # FC1 module, which converts the inner states into system modes.
         self.fc1 = nn.ModuleList()
         self.ac1 = nn.ModuleList()
         self.sm1 = nn.ModuleList()
         for m_size in mode_size:
-            self.sm1.append(nn.Softmax(dim=2))
             fc1_maps = [hidden_size] + fc1_size + [m_size]
             fc1_tmp = nn.ModuleList([nn.Linear(fc1_maps[i], fc1_maps[i+1]) for i in range(len(fc1_maps)-1)]) # priori
-            ac1_tmp = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-1)]) # priori
+            ac1_tmp = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)]) # Activation function for the last linear layer is not here.
             self.fc1.append(fc1_tmp)
             self.ac1.append(ac1_tmp)
+            self.sm1.append(nn.Softmax(dim=2))
         # FC2 module, which converts the inner states into system states.
         fc2_maps = [hidden_size]+ fc2_size + [state_size]
         self.fc21 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # mu
         self.ac21 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
         self.fc22 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # sigma
-        self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
-        # FC3 module, which converts the inner states into system parameters.
-        fc3_maps = [hidden_size]+ fc3_size + [para_size]
-        self.fc31 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)]) # mu
-        self.ac31 = nn.ModuleList([nn.ReLU() for _ in range(len(fc3_maps)-1)])
-        self.fc32 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)]) # sigma
-        self.ac32 = nn.ModuleList([nn.ReLU() for _ in range(len(fc3_maps)-1)])
+        self.ac22 = nn.ModuleList([nn.ReLU() for _ in range(len(fc2_maps)-1)])
+        # FC3 module, which converts the inner states into system parameter faults
+        fc3_maps = [hidden_size]+ fc3_size + [para_size+1] # no para fault + para fault size
+        self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
+        self.ac3 = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)])
+        self.sm3 = nn.Softmax(dim=2)
+        # FC4 module, which converts the inner states into system parameters.
+        fc4_maps = [hidden_size]+ fc4_size + [para_size]
+        self.fc41 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # mu
+        self.ac41 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.sigmoid41 = nn.Sigmoid()
+        self.fc42 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # sigma
+        self.ac42 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.sigmoid42 = nn.Sigmoid()
 
     def forward(self, x):
         '''
@@ -72,12 +84,18 @@ class fault_identifier(nn.Module):
         '''
         hs0, x = x
         # h0
-        h0 = hs0.repeat(self.rnn_size[1], 1, 1)
-        for l, a in zip(self.fc0, self.ac0):
-            h0 = l(h0)
-            h0 = a(h0)
+        inner_h0 = []
+        for fc0, ac0 in zip(self.fc0, self.ac0):
+            h0 = hs0
+            for l, a in zip(fc0, ac0):
+                h0 = l(h0)
+                h0 = a(h0)
+            t, h = h0.size()
+            h0 = h0.view(1, t, h)
+            inner_h0.append(h0)
+        inner_h0 = torch.cat(inner_h0)
         # RNN/GRU
-        hidden_states, _ = self.rnn(x, h0)
+        hidden_states, _ = self.rnn(x, inner_h0)
         # Modes
         modes = []
         for m, ma, sm in zip(self.fc1, self.ac1, self.sm1):
@@ -85,6 +103,7 @@ class fault_identifier(nn.Module):
             for l, a in zip(m, ma):
                 mode_m = l(mode_m)
                 mode_m = a(mode_m)
+            mode_m = m[-1](mode_m)
             mode_m = sm(mode_m)
             modes.append(mode_m)
         # States
@@ -96,20 +115,28 @@ class fault_identifier(nn.Module):
         for l, a in zip(self.fc22, self.ac22):
             states_sigma = l(states_sigma)
             states_sigma = a(states_sigma)
-        states_sigma = torch.exp(states_sigma)
-        # Paras
+        # Para Faults
+        paras = hidden_states
+        for l, a in zip(self.fc3, self.ac3):
+            paras = l(paras)
+            paras = a(paras)
+        paras = self.fc3[-1](paras)
+        paras = self.sm3(paras)
+        # Fault Para Values
         paras_mu = hidden_states
-        for l, a in zip(self.fc31, self.ac31):
+        for l, a in zip(self.fc41, self.ac41):
             paras_mu = l(paras_mu)
             paras_mu = a(paras_mu)
-        paras_mu = torch.exp(-paras_mu) # exp(-x), then paras_mu is between 0 and 1
+        paras_mu = self.fc41[-1](paras_mu)
+        paras_mu = self.sigmoid41(paras_mu)
         paras_sigma = hidden_states
-        for l, a in zip(self.fc32, self.ac32):
+        for l, a in zip(self.fc42, self.ac42):
             paras_sigma = l(paras_sigma)
             paras_sigma = a(paras_sigma)
-        paras_sigma = torch.exp(-paras_sigma) # exp(-x), then paras_sigma is between 0 and 1
+        paras_sigma = self.fc42[-1](paras_sigma)
+        paras_sigma = self.sigmoid42(paras_sigma)
         # modes, states and parameters
-        return modes, (states_mu, states_sigma), (paras_mu, paras_sigma) 
+        return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) 
 
 def one_mode_cross_entropy(y_head, y):
     '''

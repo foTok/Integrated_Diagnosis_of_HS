@@ -10,7 +10,8 @@ import torch
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
-from fault_identifier import fault_identifier
+from fault_identifier import gru_fault_identifier
+from fault_identifier import one_mode_cross_entropy
 from fault_identifier import multi_mode_cross_entropy
 from fault_identifier import normal_stochastic_loss
 from fault_identifier import np2tensor
@@ -28,11 +29,11 @@ def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro):
                          norm_s=np.array([1,1,1,30,10e9,10e8]))
     return r
 
-def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
-    running_loss[:] += np.array([loss.item(), mode_loss.item(), state_loss.item(), para_loss.item()])
+def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss):
+    running_loss[:] += np.array([loss.item(), mode_loss.item(), para_loss.item(), state_value_loss.item(), para_value_loss.item()])
     if i%10==9:
         ave_loss = running_loss/10
-        msg = '# %d loss:%.5f=%.5f+%.5f+%.5f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3])
+        msg = '# %d loss:%.3f=%.3f+%.3f+%.3f+%.3f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3], ave_loss[4])
         print(msg)
         running_loss[:] = np.zeros(4)
     else:
@@ -40,12 +41,12 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
 
 def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
     train_loss = []
-    running_loss = np.zeros(4)
+    running_loss = np.zeros(5)
     for i in range(epoch):
         optimizer.zero_grad()
 
         hs0, x, m, y, p = sample_data(data_mana, batch, window=5, limit=(1,2), normal_proportion=0.2, snr_or_pro=obs_snr)
-        modes, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
+        modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
         # last_m = m[:,[-1],:]
         # last_y = y[:,[-1],:]
@@ -56,12 +57,13 @@ def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
         # last_paras_mu, last_paras_sigma = paras_mu[:,[-1],:], paras_sigma[:,[-1],:]
 
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
-        state_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
-        para_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
-        loss = mode_loss + state_loss + para_loss
+        para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
+        state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
+        para_value_loss = 4*normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
+        loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
-        show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss)
+        show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss)
 
         loss.backward()
         optimizer.step()
@@ -80,9 +82,8 @@ def plot(train_loss, path, name):
     plt.savefig(os.path.join(path, name+'.svg'), format='svg')
 
 
-
 if __name__ == "__main__":
-    debug = False
+    debug = True
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
@@ -96,16 +97,17 @@ if __name__ == "__main__":
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(key))
     data_mana = new_data_manager(data_cfg, si)
     # the model
-    f_identifier = fault_identifier(hs0_size=7,\
+    f_identifier = gru_fault_identifier(hs0_size=7,\
                         x_size=5,\
                         mode_size=[6],\
                         state_size=6,\
                         para_size=3,\
                         rnn_size=[32, 4],\
-                        fc0_size=[128, 64, 32],\
+                        fc0_size=[64, 32],\
                         fc1_size=[128, 64, 32],\
                         fc2_size=[128, 64, 32],\
-                        fc3_size=[128, 64, 32])
+                        fc3_size=[128, 64, 32],
+                        fc4_size=[128, 64, 32])
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train

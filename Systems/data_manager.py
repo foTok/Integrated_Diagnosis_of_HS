@@ -232,3 +232,14 @@ class data_manager:
                     y_torch_i[b, t, k] = 1
             y_list.append(y_torch_i)
         return y_list
+
+    def np2paratarget(self, y):
+        batch, time, num = y.shape
+        base = np.arange(1, num+1)
+        y_torch = torch.zeros((batch, time, num+1))
+        for b in range(batch):
+            for t in range(time):
+                para = y[b,t,:]
+                i = (para!=0)*base
+                y_torch[b,t,i] = 1
+        return y_torch
