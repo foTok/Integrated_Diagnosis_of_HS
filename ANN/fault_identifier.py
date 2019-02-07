@@ -138,7 +138,7 @@ def normal_stochastic_loss(mu, sigma, obs):
     batch, t, _ = mu.size()
     m = Normal(mu, sigma)
     sample = m.rsample()
-    loss = torch.sum((sample-obs)**2) / (batch*t)
+    loss = torch.sum((sample-obs)**2 / (sigma**2)) / (batch*t)
     return loss
 
 def np2tensor(x):

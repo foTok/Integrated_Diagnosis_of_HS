@@ -172,6 +172,7 @@ class hpf: # hybrid particle filter
         self.modes = []
         self.paras = []
         self.Z = []
+        self.close = None
 
     def set_norm(self, norm_o, norm_s):
         self.norm_o = norm_o
@@ -304,11 +305,18 @@ class hpf: # hybrid particle filter
             hs0 = np.array(list(m0) + list(s0))
         return hs0
 
-    def fault_process(self, t0, t1):
+    def fault_process(self, t0, t1, close=10):
+        if self.close is not None:
+            self.close += self.hsw.step_len
+            if self.close < close:
+                return None
+            else:
+                self.close = None
         has_fault = self.detect_fault(t1)
         if not has_fault:
             return None
         else:
+            self.close = 0
             particles = []
             N = int((t0 + t1)/self.hsw.step_len)
             # jump back and find the initial states

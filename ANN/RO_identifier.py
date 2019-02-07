@@ -91,11 +91,11 @@ if __name__ == "__main__":
                         mode_size=[6],\
                         state_size=6,\
                         para_size=3,\
-                        rnn_size=[8, 2],\
-                        fc0_size=[32, 32],\
-                        fc1_size=[32, 32],\
-                        fc2_size=[32, 32],\
-                        fc3_size=[32, 32])
+                        rnn_size=[32, 8],\
+                        fc0_size=[128, 64, 64, 32],\
+                        fc1_size=[128, 64, 64, 32],\
+                        fc2_size=[128, 64, 64, 32],\
+                        fc3_size=[128, 64, 64, 32])
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train

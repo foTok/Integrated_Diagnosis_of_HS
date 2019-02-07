@@ -20,7 +20,9 @@ if __name__ == '__main__':
     si = 0.01
     process_snr = 40
     obs_snr = 20
-    index = 11
+    index = 5
+    norm_o=np.array([1,1,1,10e9,10e8])
+    norm_s=np.array([1,1,1,30,10e9,10e8])
     identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro_train0')
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\debug\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
@@ -36,6 +38,7 @@ if __name__ == '__main__':
     hsw = hs_system_wrapper(ro, pv, ov*1.2)
     tracker = hpf(hsw)
     tracker.load_identifier(identifier)
+    tracker.set_norm(norm_o, norm_s)
     tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, Nmin=150, Nmax=150)
     tracker.plot_states()
     tracker.plot_modes()
