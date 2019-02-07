@@ -32,11 +32,11 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
     running_loss[:] += np.array([loss.item(), mode_loss.item(), state_loss.item(), para_loss.item()])
     if i%10==9:
         ave_loss = running_loss/10
-        msg = '%d loss:%.5f=%.5f+%.5f+%.5f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3])
+        msg = '# %d loss:%.5f=%.5f+%.5f+%.5f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3])
         print(msg)
         running_loss[:] = np.zeros(4)
     else:
-        print(i, end='')
+        print('#', end='', flush=True)
 
 def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
     train_loss = []
