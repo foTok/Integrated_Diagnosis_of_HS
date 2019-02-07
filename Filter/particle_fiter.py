@@ -196,10 +196,10 @@ class hpf: # hybrid particle filter
             particles.append(ptc)
         return particles
 
-    def sample_particle_from_ann(self, modes, states, paras, weight):
+    def sample_particle_from_ann(self, modes, paras, state_values, para_values, weight):
         modes, has_fault = self.sample_modes(modes)
-        states = self.sample_states(states)
-        paras = self.sample_paras(paras, has_fault)
+        states = self.sample_states(state_values)
+        paras = self.sample_paras(paras, para_values, has_fault)
         ptc = hybrid_particle(modes,\
                               states,\
                               paras,\
@@ -227,14 +227,15 @@ class hpf: # hybrid particle filter
         sample = sample * self.norm_s # norm
         return sample
 
-    def sample_paras(self, paras, has_fault):
-        mu, sigma = paras
-        if has_fault:
-            return np.array([0]*len(mu))
-        else:
-            rd = np.random.randn(len(mu))
-            sample = rd*sigma + mu
-            return sample
+    def sample_paras(self, paras, para_values, has_fault):
+        mu, sigma = para_values
+        fault_paras = np.array([0]*len(mu))
+        if not has_fault:
+            i = dis_sample(paras)[0] # i=0 => no fault
+            if i!=0:
+                rd = np.random.randn()
+                fault_paras[i-1] = rd*sigma[i] + mu[i]
+        return fault_paras
 
     def step_particle(self, ptc, obs):
         p = ptc.clone()
@@ -283,15 +284,17 @@ class hpf: # hybrid particle filter
         # x
         time, obs = x.shape
         x = x.reshape(1, time, obs)
-        modes, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identifier((np2tensor(hs0), np2tensor(x)))
+        modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identifier((np2tensor(hs0), np2tensor(x)))
         modes = [m.detach().numpy() for m in modes]
+        paras = paras.detach.numpy()
         states_mu, states_sigma = states_mu.detach().numpy(), states_sigma.detach().numpy()
         paras_mu, paras_sigma = paras_mu.detach().numpy(), paras_sigma.detach().numpy()
         # reduce the first dimensional
         modes = [m[0,:,:] for m in modes]
+        paras = paras[0,:,:]
         states_mu, states_sigma = states_mu[0,:,:], states_sigma[0,:,:]
         paras_mu, paras_sigma = paras_mu[0,:,:], paras_sigma[0,:,:]
-        return modes, (states_mu, states_sigma), (paras_mu, paras_sigma)
+        return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)
 
     def hs0(self, N):
         '''
@@ -326,15 +329,16 @@ class hpf: # hybrid particle filter
             x = self.obs[-N:, :]
             x = x / self.norm_o
             # use ann to estimate
-            modes, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
+            modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             last_modes = [m[-1,:] for m in modes]
-            last_states = (states_mu[-1,:], states_sigma[-1,:])
-            last_paras = (paras_mu[-1,:], paras_sigma[-1,:])
+            last_paras = paras[-1,:]
+            last_state_values = (states_mu[-1,:], states_sigma[-1,:])
+            last_para_values = (paras_mu[-1,:], paras_sigma[-1,:])
             # reset the tracjectories based on estimated values
             # TODO
             # resample particles from the estimated values
             for _ in range(self.N):
-                ptc = self.sample_particle_from_ann(last_modes, last_states, last_paras, 1/self.N)
+                ptc = self.sample_particle_from_ann(last_modes, last_paras, last_state_values, last_para_values, 1/self.N)
                 particles.append(ptc)
             return particles
 
