@@ -22,7 +22,7 @@ def new_data_manager(cfg, si):
     return data_mana
 
 def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro):
-    r = data_mana.sample(size=20, window=5, limit=(2,2), normal_proportion=0.2, \
+    r = data_mana.sample(size=batch, window=5, limit=(2,2), normal_proportion=0.2, \
                          snr_or_pro=snr_or_pro,\
                          norm_o=np.array([1,1,1,10e9,10e8]), \
                          norm_s=np.array([1,1,1,30,10e9,10e8]))
@@ -35,6 +35,8 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
         msg = '%d loss:%.5f=%.5f+%.5f+%.5f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3])
         print(msg)
         running_loss[:] = np.zeros(4)
+    else:
+        print(i, end='')
 
 def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
     train_loss = []
@@ -45,6 +47,14 @@ def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
         hs0, x, m, y, p = sample_data(data_mana, batch, window=5, limit=(1,2), normal_proportion=0.2, snr_or_pro=obs_snr)
         modes, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
+        # last_m = m[:,[-1],:]
+        # last_y = y[:,[-1],:]
+        # last_p = p[:,[-1],:]
+        
+        # last_modes = [m[:,[-1],:] for m in modes]
+        # last_states_mu, last_states_sigma = states_mu[:,[-1],:], states_sigma[:,[-1],:]
+        # last_paras_mu, last_paras_sigma = paras_mu[:,[-1],:], paras_sigma[:,[-1],:]
+
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         state_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
         para_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
@@ -79,7 +89,7 @@ if __name__ == "__main__":
         os.makedirs(save_path)
     model_name = 'ro_{}'.format(key)
     epoch = 2000
-    batch = 1000
+    batch = 500
     # data manager
     si = 0.01
     obs_snr = 20
@@ -91,11 +101,11 @@ if __name__ == "__main__":
                         mode_size=[6],\
                         state_size=6,\
                         para_size=3,\
-                        rnn_size=[32, 8],\
-                        fc0_size=[128, 64, 64, 32],\
-                        fc1_size=[128, 64, 64, 32],\
-                        fc2_size=[128, 64, 64, 32],\
-                        fc3_size=[128, 64, 64, 32])
+                        rnn_size=[32, 4],\
+                        fc0_size=[128, 64, 32],\
+                        fc1_size=[128, 64, 32],\
+                        fc2_size=[128, 64, 32],\
+                        fc3_size=[128, 64, 32])
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train
