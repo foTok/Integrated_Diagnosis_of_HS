@@ -35,7 +35,7 @@ def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, 
         ave_loss = running_loss/10
         msg = '# %d loss:%.3f=%.3f+%.3f+%.3f+%.3f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3], ave_loss[4])
         print(msg)
-        running_loss[:] = np.zeros(4)
+        running_loss[:] = np.zeros(5)
     else:
         print('#', end='', flush=True)
 
@@ -83,7 +83,7 @@ def plot(train_loss, path, name):
 
 
 if __name__ == "__main__":
-    debug = True
+    debug = False
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
