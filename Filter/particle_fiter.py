@@ -234,7 +234,7 @@ class hpf: # hybrid particle filter
             i = dis_sample(paras)[0] # i=0 => no fault
             if i!=0:
                 rd = np.random.randn()
-                fp = rd*sigma[i] + mu[i]
+                fp = rd*sigma[i-1] + mu[i-1]
                 fp = min(1, max(0, fp)) # make sure fp belongs to (0, 1)
                 fault_paras[i-1] = fp
         return fault_paras
