@@ -179,8 +179,11 @@ class hpf: # hybrid particle filter
         self.norm_s = norm_s
 
     def load_identifier(self, file_name):
-        self.identifier = torch.load(file_name)
-        self.identifier.eval()
+        if os.path.exists(file_name):
+            self.identifier = torch.load(file_name)
+            self.identifier.eval()
+        else:
+            print('warning: model file does not exist, it is not changed.')
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -312,6 +315,8 @@ class hpf: # hybrid particle filter
         return hs0
 
     def fault_process(self, t0, t1, close=10):
+        if self.identifier is None:
+            return None
         if self.close is not None:
             self.close += self.hsw.step_len
             if self.close < close:
