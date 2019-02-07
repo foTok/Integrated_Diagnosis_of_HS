@@ -164,12 +164,18 @@ class hpf: # hybrid particle filter
         self.confidence = conf
         self.hsw = hsw # hs_system_wrapper
         self.identifier = None
+        self.norm_o = np.array([1]*len(self.hsw.ov))
+        self.norm_s = np.array([1]*len(self.hsw.pv))
         self.tracjectory = []
         self.res = []
         self.states = []
         self.modes = []
         self.paras = []
         self.Z = []
+
+    def set_norm(self, norm_o, norm_s):
+        self.norm_o = norm_o
+        self.norm_s = norm_s
 
     def load_identifier(self, file_name):
         self.identifier = torch.load(file_name)
@@ -216,6 +222,7 @@ class hpf: # hybrid particle filter
         mu, sigma = states
         rd = np.random.randn(len(mu))
         sample = rd*sigma + mu
+        sample = sample * self.norm_s # norm
         return sample
 
     def sample_paras(self, paras, has_fault):
@@ -290,6 +297,7 @@ class hpf: # hybrid particle filter
         '''
         m0 = self.modes[-N]
         s0 = self.states[-N]
+        s0 = s0 / self.norm_s # normal
         if isinstance(m0, int):
             hs0 = np.array([m0] + list(s0))
         else:
@@ -307,6 +315,7 @@ class hpf: # hybrid particle filter
             hs0 = self.hs0(N+1)
             # obtain the observations
             x = self.obs[-N:, :]
+            x = x / self.norm_o
             # use ann to estimate
             modes, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             last_modes = [m[-1,:] for m in modes]

@@ -274,13 +274,13 @@ class RO:
         fig.suptitle('Fault parameters')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len
         # 0
-        ax_lst[0, 0].plot(x, data[:, 0])
-        ax_lst[0, 0].set_ylabel('f_f')
+        ax_lst[0].plot(x, data[:, 0])
+        ax_lst[0].set_ylabel('f_f')
         # 1
-        ax_lst[1, 0].plot(x, data[:, 1])
-        ax_lst[1, 0].set_ylabel('f_m')
+        ax_lst[1].plot(x, data[:, 1])
+        ax_lst[1].set_ylabel('f_m')
         # 2
-        ax_lst[2, 0].plot(x, data[:, 2])
-        ax_lst[2, 0].set_xlabel('Time/s')
-        ax_lst[2, 0].set_ylabel('f_r')
+        ax_lst[2].plot(x, data[:, 2])
+        ax_lst[2].set_xlabel('Time/s')
+        ax_lst[2].set_ylabel('f_r')
         plt.show()
