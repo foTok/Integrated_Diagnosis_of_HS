@@ -291,7 +291,7 @@ class hpf: # hybrid particle filter
         x = x.reshape(1, time, obs)
         modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identifier((np2tensor(hs0), np2tensor(x)))
         modes = [m.detach().numpy() for m in modes]
-        paras = paras.detach.numpy()
+        paras = paras.detach().numpy()
         states_mu, states_sigma = states_mu.detach().numpy(), states_sigma.detach().numpy()
         paras_mu, paras_sigma = paras_mu.detach().numpy(), paras_sigma.detach().numpy()
         # reduce the first dimensional
@@ -342,7 +342,9 @@ class hpf: # hybrid particle filter
             last_state_values = (states_mu[-1,:], states_sigma[-1,:])
             last_para_values = (paras_mu[-1,:], paras_sigma[-1,:])
             # reset the tracjectories based on estimated values
-            # TODO
+            # debug
+            print('modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
+                  .format(last_modes, last_paras, last_state_values[0],last_state_values[1],last_para_values[0],last_para_values[1]))
             # resample particles from the estimated values
             for _ in range(self.N):
                 ptc = self.sample_particle_from_ann(last_modes, last_paras, last_state_values, last_para_values, 1/self.N)

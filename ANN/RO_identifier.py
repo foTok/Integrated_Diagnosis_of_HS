@@ -11,6 +11,7 @@ import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
 from fault_identifier import gru_fault_identifier
+from fault_identifier import cnn_fault_identifier
 from fault_identifier import one_mode_cross_entropy
 from fault_identifier import multi_mode_cross_entropy
 from fault_identifier import normal_stochastic_loss
@@ -48,14 +49,6 @@ def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
         hs0, x, m, y, p = sample_data(data_mana, batch, window=5, limit=(1,2), normal_proportion=0.2, snr_or_pro=obs_snr)
         modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
-        # last_m = m[:,[-1],:]
-        # last_y = y[:,[-1],:]
-        # last_p = p[:,[-1],:]
-        
-        # last_modes = [m[:,[-1],:] for m in modes]
-        # last_states_mu, last_states_sigma = states_mu[:,[-1],:], states_sigma[:,[-1],:]
-        # last_paras_mu, last_paras_sigma = paras_mu[:,[-1],:], paras_sigma[:,[-1],:]
-
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
         state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
@@ -69,8 +62,36 @@ def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
         optimizer.step()
     return train_loss
 
+def gru_model():
+    f_identifier = gru_fault_identifier(hs0_size=7,\
+                    x_size=5,\
+                    mode_size=[6],\
+                    state_size=6,\
+                    para_size=3,\
+                    rnn_size=[32, 4],\
+                    fc0_size=[64, 32],\
+                    fc1_size=[128, 64, 32],\
+                    fc2_size=[128, 64, 32],\
+                    fc3_size=[128, 64, 32],
+                    fc4_size=[128, 64, 32])
+    return f_identifier
+
+def cnn_model():
+    f_identifier = cnn_fault_identifier(hs0_size=7,\
+                    x_size=5,\
+                    mode_size=[6],\
+                    state_size=6,\
+                    para_size=3,\
+                    cnn_size=([32, 64, 128, 256], [8, 4, 4, 4]),\
+                    fc0_size=[64, 32],\
+                    fc1_size=[128, 64, 32],\
+                    fc2_size=[128, 64, 32],\
+                    fc3_size=[128, 64, 32],
+                    fc4_size=[128, 64, 32])
+    return f_identifier
+
 def save_model(model, path, name):
-    torch.save(f_identifier, os.path.join(path, name))
+    torch.save(model, os.path.join(path, name))
     print('saved model {} to {}'.format(name, path))
 
 def plot(train_loss, path, name):
@@ -84,11 +105,12 @@ def plot(train_loss, path, name):
 
 if __name__ == "__main__":
     debug = False
+    ann = 'cnn' # 'gru
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
-    model_name = 'ro_{}'.format(key)
+    model_name = '{}_ro'.format(ann)
     epoch = 2000
     batch = 500
     # data manager
@@ -97,17 +119,12 @@ if __name__ == "__main__":
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(key))
     data_mana = new_data_manager(data_cfg, si)
     # the model
-    f_identifier = gru_fault_identifier(hs0_size=7,\
-                        x_size=5,\
-                        mode_size=[6],\
-                        state_size=6,\
-                        para_size=3,\
-                        rnn_size=[32, 4],\
-                        fc0_size=[64, 32],\
-                        fc1_size=[128, 64, 32],\
-                        fc2_size=[128, 64, 32],\
-                        fc3_size=[128, 64, 32],
-                        fc4_size=[128, 64, 32])
+    if ann=='cnn':
+        f_identifier = cnn_model()
+    elif ann=='gru':
+        f_identifier = gru_model()
+    else:
+        raise RuntimeError('Unknown Model Type.')
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train

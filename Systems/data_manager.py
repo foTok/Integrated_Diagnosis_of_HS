@@ -199,13 +199,12 @@ class data_manager:
                 start = random.randint(l1, l2)
                 _hs0 = np.concatenate((modes_i[start-1], states_i[start-1])) # hs0
                 outputs = outputs_i[start:start+window, :] # x
-                modes = modes_i[start:start+window, :] # m
-                states = states_i[start:start+window, :] # y
+                modes = modes_i[start+window, :] # m
+                states = states_i[start+window, :] # y
                 # fault parameters
-                _p = np.zeros((window, len(self.cfg.fault_para_names)))
+                _p = np.zeros(len(self.cfg.fault_para_names))
                 if term.fault_type in self.cfg.fault_para_names:
-                    n0 = fault_i - start
-                    _p[n0:,self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                    _p[self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
                 # store them
                 hs0.append(_hs0)
                 x.append(outputs)
@@ -222,24 +221,22 @@ class data_manager:
         '''
         y_list = []
         mode_size = self.get_mode_size()
-        batch, time, _ = y.shape
+        batch, _ = y.shape
         for i, size in enumerate(mode_size):
-            y_i = y[:, :, i]
-            y_torch_i = torch.zeros((batch, time, size))
+            y_i = y[:, i]
+            y_torch_i = torch.zeros((batch, size))
             for b in range(batch):
-                for t in range(time):
-                    k = int(y_i[b, t])
-                    y_torch_i[b, t, k] = 1
+                k = int(y_i[b])
+                y_torch_i[b, k] = 1
             y_list.append(y_torch_i)
         return y_list
 
     def np2paratarget(self, y):
-        batch, time, num = y.shape
+        batch, num = y.shape
         base = np.arange(1, num+1)
-        y_torch = torch.zeros((batch, time, num+1))
+        y_torch = torch.zeros((batch, num+1))
         for b in range(batch):
-            for t in range(time):
-                para = y[b,t,:]
-                i = (para!=0)*base
-                y_torch[b,t,i] = 1
+            para = y[b,:]
+            i = (para!=0)*base
+            y_torch[b,i] = 1
         return y_torch

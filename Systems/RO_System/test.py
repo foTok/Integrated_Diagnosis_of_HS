@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # show something
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--sample_int", type=float,  help="the sample interval")
-    parser.add_argument("-f", "--fault", type=str, choices=['stuck_1', 'stuck_2', 'stuck_3', 'f_f', 'f_r', 'f_m'], help="the fault type")
+    parser.add_argument("-f", "--fault", type=str, choices=['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m'], help="the fault type")
     parser.add_argument("-m", "--magnitude", type=float, help="fault magnitude")
     parser.add_argument("-t", "--fault_time", type=float, help="fault time")
     parser.add_argument("-l", "--length", type=float, help="simulation length")
