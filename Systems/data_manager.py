@@ -199,8 +199,8 @@ class data_manager:
                 start = random.randint(l1, l2)
                 _hs0 = np.concatenate((modes_i[start-1], states_i[start-1])) # hs0
                 outputs = outputs_i[start:start+window, :] # x
-                modes = modes_i[start+window, :] # m
-                states = states_i[start+window, :] # y
+                modes = modes_i[start+window-1, :] # m
+                states = states_i[start+window-1, :] # y
                 # fault parameters
                 _p = np.zeros(len(self.cfg.fault_para_names))
                 if term.fault_type in self.cfg.fault_para_names:
