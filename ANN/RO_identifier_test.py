@@ -49,7 +49,7 @@ def loss(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma, m, p, y):
     print(msg)
 
 if __name__ == "__main__":
-    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro_train')
+    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
     epoch = 0
     batch = 500
     # data manager

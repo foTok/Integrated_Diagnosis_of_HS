@@ -295,10 +295,10 @@ class hpf: # hybrid particle filter
         states_mu, states_sigma = states_mu.detach().numpy(), states_sigma.detach().numpy()
         paras_mu, paras_sigma = paras_mu.detach().numpy(), paras_sigma.detach().numpy()
         # reduce the first dimensional
-        modes = [m[0,:,:] for m in modes]
-        paras = paras[0,:,:]
-        states_mu, states_sigma = states_mu[0,:,:], states_sigma[0,:,:]
-        paras_mu, paras_sigma = paras_mu[0,:,:], paras_sigma[0,:,:]
+        modes = [m[0,:] for m in modes]
+        paras = paras[0,:]
+        states_mu, states_sigma = states_mu[0,:], states_sigma[0,:]
+        paras_mu, paras_sigma = paras_mu[0,:], paras_sigma[0,:]
         return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)
 
     def hs0(self, N):
@@ -333,21 +333,18 @@ class hpf: # hybrid particle filter
             # jump back and find the initial states
             hs0 = self.hs0(N+1)
             # obtain the observations
-            x = self.obs[-N:, :]
+            current = len(self.modes)-1
+            x = self.obs[current-N:current, :]
             x = x / self.norm_o
             # use ann to estimate
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
-            last_modes = [m[-1,:] for m in modes]
-            last_paras = paras[-1,:]
-            last_state_values = (states_mu[-1,:], states_sigma[-1,:])
-            last_para_values = (paras_mu[-1,:], paras_sigma[-1,:])
             # reset the tracjectories based on estimated values
             # debug
             print('modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
-                  .format(last_modes, last_paras, last_state_values[0],last_state_values[1],last_para_values[0],last_para_values[1]))
+                  .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma))
             # resample particles from the estimated values
             for _ in range(self.N):
-                ptc = self.sample_particle_from_ann(last_modes, last_paras, last_state_values, last_para_values, 1/self.N)
+                ptc = self.sample_particle_from_ann(modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma), 1/self.N)
                 particles.append(ptc)
             return particles
 

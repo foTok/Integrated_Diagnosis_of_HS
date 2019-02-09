@@ -147,7 +147,7 @@ class data_manager:
             mode_size.append(len(self.cfg.mode_names[m]))
         return mode_size
 
-    def sample(self, size, window, limit, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None):
+    def sample(self, size, window, limit, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[]):
         '''
         size:
             int, the number of sampled data.
@@ -165,17 +165,22 @@ class data_manager:
         assert sum(limit) < window
         window = int(window/self.sample_int)
         limit = (int(limit[0]/self.sample_int), int(limit[1]/self.sample_int))
-        label_size = len(self.labels) # if label_size is one, it must be normal
+        # mask lables
+        the_labels = []
+        for l in self.labels:
+            if l not in mask:
+                the_labels.append(l)
+        label_size = len(the_labels) # if label_size is one, it must be normal
         assert label_size >= 1
         fault_size = 0 if label_size==1 else int(size*(1-normal_proportion)/(label_size-1))
-        normal_size = int(size - fault_size*(len(self.labels) - 1)) # make sure it is an int
+        normal_size = int(size - fault_size*(len(the_labels) - 1)) # make sure it is an int
         # hs0: the initial hybrid states, the input of classifiers,
         # x: system outputs, the input of classifiers,
         # m: modes, the output of classifiers,
         # y: states, the output of classifiers, 
         # p: the fault parameters, the output of classifiers.
         hs0, x, m, y, p = [], [], [], [], []
-        for label in self.labels:
+        for label in the_labels:
             # 1. find all indexes with this label
             indexes = []
             for i, term in enumerate(self.cfg.terms):

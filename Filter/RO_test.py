@@ -23,9 +23,10 @@ if __name__ == '__main__':
     index = 111
     norm_o=np.array([1,1,1,10e9,10e8])
     norm_s=np.array([1,1,1,30,10e9,10e8])
-    identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro_train')
+    identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro0.cnn')
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\train\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
+    data_mana.get_info(index)
     state = data_mana.select_states(index)
     state_with_noise = data_mana.select_states(index, process_snr)
     output = data_mana.select_outputs(index)

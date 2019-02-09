@@ -23,11 +23,12 @@ def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
     return data_mana
 
-def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro):
+def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro, mask):
     r = data_mana.sample(size=batch, window=5, limit=(2,2), normal_proportion=0.2, \
                          snr_or_pro=snr_or_pro,\
                          norm_o=np.array([1,1,1,10e9,10e8]), \
-                         norm_s=np.array([1,1,1,30,10e9,10e8]))
+                         norm_s=np.array([1,1,1,30,10e9,10e8]),\
+                         mask=mask)
     return r
 
 def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss):
@@ -40,19 +41,19 @@ def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, 
     else:
         print('#', end='', flush=True)
 
-def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr):
+def train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr, mask):
     train_loss = []
     running_loss = np.zeros(5)
     for i in range(epoch):
         optimizer.zero_grad()
 
-        hs0, x, m, y, p = sample_data(data_mana, batch, window=5, limit=(1,2), normal_proportion=0.2, snr_or_pro=obs_snr)
+        hs0, x, m, y, p = sample_data(data_mana, batch, window=5, limit=(1,2), normal_proportion=0.2, snr_or_pro=obs_snr, mask=mask)
         modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
         state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
-        para_value_loss = 4*normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
+        para_value_loss = 100*normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
         loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
@@ -110,7 +111,8 @@ if __name__ == "__main__":
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
-    model_name = '{}_ro'.format(ann)
+    mask = ['f_m']
+    model_name = 'ro.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=8e-3)
     # train
-    train_loss = train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr)
+    train_loss = train(epoch, batch, data_mana, f_identifier, optimizer, obs_snr, mask)
     # save model
     save_model(f_identifier, save_path, model_name)
     # figure
