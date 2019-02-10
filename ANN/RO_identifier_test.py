@@ -41,15 +41,15 @@ def load_model(file_name):
 def loss(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma, m, p, y):
     mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
     para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
-    state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
-    para_value_loss = 4*normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
+    state_value_loss, _ = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
+    para_value_loss, _ = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
     loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
     msg = 'loss:%.3f=%.3f+%.3f+%.3f+%.3f' %(loss.item(), mode_loss.item(), para_loss.item(), state_value_loss.item(), para_value_loss.item())
     print(msg)
 
 if __name__ == "__main__":
-    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro2.cnn')
+    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro0.cnn')
     epoch = 0
     batch = 100
     # data manager

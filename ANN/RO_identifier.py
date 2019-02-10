@@ -15,6 +15,7 @@ from fault_identifier import cnn_fault_identifier
 from fault_identifier import one_mode_cross_entropy
 from fault_identifier import multi_mode_cross_entropy
 from fault_identifier import normal_stochastic_loss
+from fault_identifier import normalized_mse
 from fault_identifier import np2tensor
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
@@ -66,8 +67,8 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
-        state_value_loss, mean_state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
-        para_value_loss, mean_para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
+        state_value_loss, mean_state_value_loss = normalized_mse(states_mu, states_sigma, np2tensor(y))
+        para_value_loss, mean_para_value_loss = normalized_mse(paras_mu, paras_sigma, np2tensor(p))
         loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
-    model_name = 'ro0.{}'.format(ann)
+    model_name = 'ro1.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager

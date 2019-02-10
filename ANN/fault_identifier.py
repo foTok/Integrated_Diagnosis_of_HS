@@ -312,5 +312,11 @@ def normal_stochastic_loss(mu, sigma, obs):
     sum_loss = torch.sum(mean_loss)
     return sum_loss, mean_loss.detach().numpy()
 
+def normalized_mse(mu, sigma, obs):
+    loss = 0.5*((mu-obs)/sigma)**2
+    mean_loss = torch.mean(loss, 0)
+    sum_loss = torch.sum(mean_loss)
+    return sum_loss, mean_loss.detach().numpy()
+
 def np2tensor(x):
     return torch.tensor(x, dtype=torch.float)
