@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.distributions.normal import Normal
-from torch.autograd import Variable
 
 class gru_fault_identifier(nn.Module):
     def __init__(self, hs0_size, x_size, mode_size, state_size, para_size, rnn_size, fc0_size=[], fc1_size=[], fc2_size=[], fc3_size=[], fc4_size=[], dropout=0.5):
@@ -305,16 +304,14 @@ def multi_mode_cross_entropy(y_head, y):
         ce += one_mode_cross_entropy(y1, y0)
     return ce
 
-def normal_stochastic_loss(mu, sigma, obs):
+def normal_stochastic_loss(mu, sigma, obs, k=1):
     m = Normal(mu, sigma)
-    sample = m.rsample()
-    mean_loss = torch.mean((sample-obs)**2, 0)
-    sum_loss = torch.sum(mean_loss)
-    return sum_loss, mean_loss.detach().numpy()
-
-def normalized_mse(mu, sigma, obs):
-    loss = 0.5*((mu-obs)/sigma)**2
-    mean_loss = torch.mean(loss, 0)
+    sample = m.rsample([k])
+    # repeat obs
+    batch, length = obs.size()
+    obs = obs.view(1, batch, length)
+    obs = obs.expand(k, batch, length)
+    mean_loss = torch.mean((sample-obs)**2, [0, 1])
     sum_loss = torch.sum(mean_loss)
     return sum_loss, mean_loss.detach().numpy()
 
