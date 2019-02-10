@@ -49,9 +49,9 @@ def loss(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma, m, p, y):
     print(msg)
 
 if __name__ == "__main__":
-    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
+    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro2.cnn')
     epoch = 0
-    batch = 500
+    batch = 100
     # data manager
     si = 0.01
     obs_snr = 20

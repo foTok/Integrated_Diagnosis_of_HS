@@ -230,16 +230,24 @@ class hpf: # hybrid particle filter
         sample = sample * self.norm_s # norm
         return sample
 
-    def sample_paras(self, paras, para_values, has_fault):
+    def sample_paras(self, paras, para_values, has_fault, mask_normal=True):
+        paras = paras if not mask_normal else paras[1:]
         mu, sigma = para_values
-        fault_paras = np.array([0]*len(mu))
+        fault_paras = np.zeros(len(mu))
         if not has_fault:
-            i = dis_sample(paras)[0] # i=0 => no fault
-            if i!=0:
+            i = dis_sample(paras)[0]
+            if not mask_normal:
+                # i=0 => no fault
+                if i!=0:
+                    rd = np.random.randn()
+                    fp = rd*sigma[i-1] + mu[i-1]
+                    fp = min(1, max(0, fp)) # make sure fp belongs to (0, 1)
+                    fault_paras[i-1] = fp
+            else:
                 rd = np.random.randn()
-                fp = rd*sigma[i-1] + mu[i-1]
+                fp = rd*sigma[i] + mu[i]
                 fp = min(1, max(0, fp)) # make sure fp belongs to (0, 1)
-                fault_paras[i-1] = fp
+                fault_paras[i] = fp
         return fault_paras
 
     def step_particle(self, ptc, obs):
@@ -348,14 +356,14 @@ class hpf: # hybrid particle filter
                 particles.append(ptc)
             return particles
 
-    def last_particles(self, modes=None, state_mean=None, state_var=None):
-        particles = self.fault_process(2,3)
+    def last_particles(self, limit, modes=None, state_mean=None, state_var=None):
+        particles = self.fault_process(limit[0], limit[1])
         if particles is not None:
             return particles
         particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
         return particles
 
-    def track(self, modes, state_mean, state_var, observations, Nmin, Nmax=None):
+    def track(self, modes, state_mean, state_var, observations, limit, Nmin, Nmax=None):
         print('Tracking hybrid states...')
         self.obs = observations
         self.N = Nmin
@@ -366,7 +374,7 @@ class hpf: # hybrid particle filter
             i, obs_len = 0, len(observations)
             while i < obs_len:
                 obs = observations[i]
-                particles = self.last_particles(modes, state_mean, state_var)
+                particles = self.last_particles(limit, modes, state_mean, state_var)
                 particles_ip1, res = self.step(particles, obs)
                 ave_states = self.ave_states(particles_ip1)
                 ave_paras = self.ave_paras(particles_ip1)
