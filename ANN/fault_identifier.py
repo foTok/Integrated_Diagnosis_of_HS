@@ -71,10 +71,10 @@ class gru_fault_identifier(nn.Module):
         # FC4 module, which converts the inner states into system parameters.
         fc4_maps = [hidden_size]+ fc4_size + [para_size]
         self.fc41 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # mu
-        self.ac41 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.ac41 = nn.ModuleList([nn.PReLU() for _ in range(len(fc4_maps)-2)])
         self.sigmoid41 = nn.Sigmoid()
         self.fc42 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # sigma
-        self.ac42 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.ac42 = nn.ModuleList([nn.PReLU() for _ in range(len(fc4_maps)-2)])
         self.sigmoid42 = nn.Sigmoid()
 
     def forward(self, x):
@@ -207,10 +207,10 @@ class cnn_fault_identifier(nn.Module):
         # FC4 module, which converts the inner states into system parameters.
         fc4_maps = [feature_num]+ fc4_size + [para_size]
         self.fc41 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # mu
-        self.ac41 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.ac41 = nn.ModuleList([nn.PReLU() for _ in range(len(fc4_maps)-2)])
         self.sigmoid41 = nn.Sigmoid()
         self.fc42 = nn.ModuleList([nn.Linear(fc4_maps[i], fc4_maps[i+1]) for i in range(len(fc4_maps)-1)]) # sigma
-        self.ac42 = nn.ModuleList([nn.ReLU() for _ in range(len(fc4_maps)-2)])
+        self.ac42 = nn.ModuleList([nn.PReLU() for _ in range(len(fc4_maps)-2)])
         self.sigmoid42 = nn.Sigmoid()
 
     def forward(self, x):

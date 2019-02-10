@@ -107,14 +107,14 @@ def plot(train_loss, path, name):
 
 if __name__ == "__main__":
     debug = False
-    window = 10
+    window = 5
     ann = 'cnn' # 'gru
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
-    model_name = 'ro3.{}'.format(ann)
+    model_name = 'ro0.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(key))
     data_mana = new_data_manager(data_cfg, si)
     T = int(window / si)
-    limit = (2, 6)
+    limit = (1, 2)
     # the model
     if ann=='cnn':
         f_identifier = cnn_model(T)
