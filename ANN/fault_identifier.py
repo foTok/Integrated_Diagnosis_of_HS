@@ -53,7 +53,7 @@ class gru_fault_identifier(nn.Module):
         for m_size in mode_size:
             fc1_maps = [hidden_size] + fc1_size + [m_size]
             fc1_tmp = nn.ModuleList([nn.Linear(fc1_maps[i], fc1_maps[i+1]) for i in range(len(fc1_maps)-1)]) # priori
-            ac1_tmp = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)]) # Activation function for the last linear layer is not here.
+            ac1_tmp = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)]) # Activation function for the last linear layer is not here.
             self.fc1.append(fc1_tmp)
             self.ac1.append(ac1_tmp)
             self.sm1.append(nn.Softmax(dim=2))
@@ -62,11 +62,12 @@ class gru_fault_identifier(nn.Module):
         self.fc21 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # mu
         self.ac21 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
         self.fc22 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # sigma
-        self.ac22 = nn.ModuleList([nn.ReLU() for _ in range(len(fc2_maps)-1)])
+        self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-2)])
+        self.sigmoid22 = nn.Sigmoid()
         # FC3 module, which converts the inner states into system parameter faults
         fc3_maps = [hidden_size]+ fc3_size + [para_size+1] # no para fault + para fault size
         self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
-        self.ac3 = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)])
+        self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)])
         self.sm3 = nn.Softmax(dim=2)
         # FC4 module, which converts the inner states into system parameters.
         fc4_maps = [hidden_size]+ fc4_size + [para_size]
@@ -115,6 +116,8 @@ class gru_fault_identifier(nn.Module):
         for l, a in zip(self.fc22, self.ac22):
             states_sigma = l(states_sigma)
             states_sigma = a(states_sigma)
+        states_sigma = self.fc22[-1](states_sigma)
+        states_sigma = self.sigmoid22(states_sigma)
         # Para Faults
         paras = hidden_states
         for l, a in zip(self.fc3, self.ac3):
@@ -176,7 +179,7 @@ class cnn_fault_identifier(nn.Module):
             self.cnn.append(nn.Conv1d(channels[i], channels[i+1], kernels[i]))
             self.cnn_ac.append(nn.PReLU())
             self.cnn_pool.append(nn.AvgPool1d(self.pooling))
-        self.cnn_mean = nn.Conv1d(channels[-1], channels[-1], Lout)
+        self.cnn_merge = nn.Conv1d(channels[-1], channels[-1], Lout)
         # FC0 module, which converts the hs0 into initial features.
         fc0_maps = [hs0_size] + fc0_size
         self.fc0 = nn.ModuleList([nn.Linear(fc0_maps[i], fc0_maps[i+1]) for i in range(len(fc0_maps)-1)])
@@ -189,7 +192,7 @@ class cnn_fault_identifier(nn.Module):
         for m_size in mode_size:
             fc1_maps = [feature_num] + fc1_size + [m_size]
             fc1_tmp = nn.ModuleList([nn.Linear(fc1_maps[i], fc1_maps[i+1]) for i in range(len(fc1_maps)-1)]) # priori
-            ac1_tmp = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)]) # Activation function for the last linear layer is not here.
+            ac1_tmp = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)]) # Activation function for the last linear layer is not here.
             self.fc1.append(fc1_tmp)
             self.ac1.append(ac1_tmp)
             self.sm1.append(nn.Softmax(dim=1))
@@ -198,11 +201,12 @@ class cnn_fault_identifier(nn.Module):
         self.fc21 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # mu
         self.ac21 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-1)])
         self.fc22 = nn.ModuleList([nn.Linear(fc2_maps[i], fc2_maps[i+1]) for i in range(len(fc2_maps)-1)]) # sigma
-        self.ac22 = nn.ModuleList([nn.ReLU() for _ in range(len(fc2_maps)-1)])
+        self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-2)])
+        self.sigmoid22 = nn.Sigmoid()
         # FC3 module, which converts the inner states into system parameter faults
         fc3_maps = [feature_num]+ fc3_size + [para_size+1] # no para fault + para fault size
         self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
-        self.ac3 = nn.ModuleList([nn.ReLU() for _ in range(len(fc1_maps)-2)])
+        self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)])
         self.sm3 = nn.Softmax(dim=1)
         # FC4 module, which converts the inner states into system parameters.
         fc4_maps = [feature_num]+ fc4_size + [para_size]
@@ -231,7 +235,7 @@ class cnn_fault_identifier(nn.Module):
             cnn_features = c(cnn_features)
             cnn_features = a(cnn_features)
             cnn_features = p(cnn_features)
-        cnn_features = self.cnn_mean(cnn_features)
+        cnn_features = self.cnn_merge(cnn_features)
         cnn_features = cnn_features.view(-1, self.cnn_size[0][-1])
         # merge init_features and cnn_features
         features = torch.cat((init_features, cnn_features), 1)
@@ -254,6 +258,8 @@ class cnn_fault_identifier(nn.Module):
         for l, a in zip(self.fc22, self.ac22):
             states_sigma = l(states_sigma)
             states_sigma = a(states_sigma)
+        states_sigma = self.fc22[-1](states_sigma)
+        states_sigma = self.sigmoid22(states_sigma)
         # Para Faults
         paras = features
         for l, a in zip(self.fc3, self.ac3):
@@ -302,9 +308,9 @@ def multi_mode_cross_entropy(y_head, y):
 def normal_stochastic_loss(mu, sigma, obs):
     m = Normal(mu, sigma)
     sample = m.rsample()
-    loss = torch.mean((sample-obs)**2, 0)
-    loss = torch.sum(loss)
-    return loss
+    mean_loss = torch.mean((sample-obs)**2, 0)
+    sum_loss = torch.sum(mean_loss)
+    return sum_loss, mean_loss.detach().numpy()
 
 def np2tensor(x):
     return torch.tensor(x, dtype=torch.float)

@@ -31,19 +31,33 @@ def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro, 
                          mask=mask)
     return r
 
-def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss):
+def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, mean_state_value_loss, mean_para_value_loss, \
+              running_state_mean_loss, running_para_mean_loss, running_loss):
     running_loss[:] += np.array([loss.item(), mode_loss.item(), para_loss.item(), state_value_loss.item(), para_value_loss.item()])
+    running_state_mean_loss[:] += mean_state_value_loss
+    running_para_mean_loss[:] += mean_para_value_loss
     if i%10==9:
-        ave_loss = running_loss/10
-        msg = '# %d loss:%.3f=%.3f+%.3f+%.3f+%.3f' %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3], ave_loss[4])
+        ave_loss = running_loss /  10
+        ave_state_loss = running_state_mean_loss / 10
+        ave_para_loss = running_para_mean_loss / 10
+        msg = '# %d loss:%.3f=%.3f+%.3f \
+              +%.3f(%.3f+%.3f+%.3f+%.3f+%.3f+%.3f) \
+              +%.3f(%.3f+%.3f+%.3f)' \
+              %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], \
+              ave_loss[3], ave_state_loss[0], ave_state_loss[1], ave_state_loss[2], ave_state_loss[3], ave_state_loss[4], ave_state_loss[5], \
+              ave_loss[4], ave_para_loss[0], ave_para_loss[1], ave_para_loss[2])
         print(msg)
         running_loss[:] = np.zeros(5)
+        running_state_mean_loss[:] = np.zeros(6)
+        running_para_mean_loss[:] = np.zeros(3)
     else:
         print('#', end='', flush=True)
 
 def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask):
     train_loss = []
     running_loss = np.zeros(5)
+    running_state_mean_loss = np.zeros(6)
+    running_para_mean_loss = np.zeros(3)
     for i in range(epoch):
         optimizer.zero_grad()
 
@@ -52,12 +66,13 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
-        state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
-        para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
+        state_value_loss, mean_state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y))
+        para_value_loss, mean_para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p))
         loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
-        show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss)
+        show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, mean_state_value_loss, mean_para_value_loss, \
+                  running_state_mean_loss, running_para_mean_loss, running_loss)
 
         loss.backward()
         optimizer.step()
