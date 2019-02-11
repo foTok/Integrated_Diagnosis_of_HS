@@ -173,7 +173,10 @@ class hpf: # hybrid particle filter
         self.modes = []
         self.paras = []
         self.Z = []
-        self.close = None
+        self.fd_close = None # if fault detect closed
+        self.pf_close = None # if filter closed
+        self.fd_close_window = 10
+        self.pf_close_window = 5
 
     def set_norm(self, norm_o, norm_s):
         self.norm_o = norm_o
@@ -183,12 +186,36 @@ class hpf: # hybrid particle filter
         self.states_sigma = states_sigma
         self.paras_sigma = paras_sigma
 
+    def set_close_window(self, fd, pf):
+        self.fd_close_window = fd
+        self.pf_close_window = pf
+
     def load_identifier(self, file_name):
         if os.path.exists(file_name):
             self.identifier = torch.load(file_name)
             self.identifier.eval()
         else:
             print('warning: model file does not exist, it is not changed.')
+
+    def fd_is_closed(self):
+        r = False # not close
+        if self.fd_close is not None:
+            self.fd_close += self.hsw.step_len
+            if self.fd_close < self.fd_close_window:
+                r = True
+            else:
+                self.fd_close = None
+        return r
+
+    def pf_is_close(self):
+        r = False # not close
+        if self.pf_close is not None:
+            self.pf_close += self.hsw.step_len
+            if self.pf_close < self.pf_close_window:
+                r = True
+            else:
+                self.pf_close = None
+        return r
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -260,9 +287,10 @@ class hpf: # hybrid particle filter
         # one step based on the partical
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         states = self.hsw.state_step(modes, states, p.fault_paras)
-        # add process noise
-        process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv)
-        states += process_noise
+        if not self.pf_is_close():
+            # add process noise
+            process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv)
+            states += process_noise
         p.set_hs(modes, states)
         output = self.hsw.output(modes, states)
         # compute Pobs
@@ -330,12 +358,8 @@ class hpf: # hybrid particle filter
     def fault_process(self, t0, t1, close=10):
         if self.identifier is None:
             return None
-        if self.close is not None:
-            self.close += self.hsw.step_len
-            if self.close < close:
-                return None
-            else:
-                self.close = None
+        if self.fd_is_closed():
+            return None
         has_fault = self.detect_fault(t1)
         if not has_fault:
             return None
