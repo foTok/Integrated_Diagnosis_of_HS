@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch.distributions.normal import Normal
 
 def add_noise(data, snr_pro_var=None):
     if snr_pro_var is None:
@@ -52,8 +53,8 @@ def one_mode_cross_entropy(y_head, y, mask=None):
         mask = torch.tensor(mask).float()
         indices = (y!=mask).any(1)
         indices2 = (mask!=1)
-        y_head = y_head[indices]
-        y = y[indices][indices2]
+        y_head = y_head[indices, :]
+        y = y[indices, :][:, indices2]
     ce = - y * torch.log(y_head)
     ce = torch.mean(ce, 0)
     ce = torch.sum(ce)
@@ -65,8 +66,8 @@ def multi_mode_cross_entropy(y_head, y, mask=None):
         y_head: the prediceted values
         y: the real values
     '''
-    if mask is not None:
-        mask = [None]*len*y_head
+    if mask is None:
+        mask = [None]*len(y_head)
     ce = torch.tensor(0, dtype=torch.float)
     for y1, y0, m in zip(y_head, y, mask):
         ce += one_mode_cross_entropy(y1, y0, m)

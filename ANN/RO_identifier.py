@@ -137,7 +137,7 @@ def plot(train_loss, path, name):
 if __name__ == "__main__":
     debug = False
     window = 5
-    ann = 'cnn' # 'gru', 'cnn2', 'gru2'
+    ann = 'cnn2' # 'gru', 'cnn2', 'gru2'
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
