@@ -1,5 +1,5 @@
 '''
-define a fault identifier
+define fault identifiers where no normal case for parameter fault.
 '''
 
 import torch
@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 from torch.distributions.normal import Normal
 
-class gru_fault_identifier(nn.Module):
+class gru_fault_identifier2(nn.Module):
     def __init__(self, hs0_size, x_size, mode_size, state_size, para_size, rnn_size, fc0_size=[], fc1_size=[], fc2_size=[], fc3_size=[], fc4_size=[], dropout=0.5):
         '''
         Args:
@@ -22,7 +22,7 @@ class gru_fault_identifier(nn.Module):
                 If fc is empty, the corresponding module will be designed from in to out directly.
                 If fc is not empty, the module will add extral layers.
         '''
-        super(gru_fault_identifier, self).__init__()
+        super(gru_fault_identifier2, self).__init__()
         self.hs0_size = hs0_size
         self.x_size = x_size
         self.mode_size = mode_size
@@ -64,7 +64,7 @@ class gru_fault_identifier(nn.Module):
         self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-2)])
         self.sigmoid22 = nn.Sigmoid()
         # FC3 module, which converts the inner states into system parameter faults
-        fc3_maps = [hidden_size]+ fc3_size + [para_size+1] # no para fault + para fault size
+        fc3_maps = [hidden_size]+ fc3_size + [para_size]
         self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
         self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)])
         self.sm3 = nn.Softmax(dim=2)
@@ -146,12 +146,12 @@ class gru_fault_identifier(nn.Module):
         last_paras_sigma = paras_sigma[:,-1,:]
         return last_modes, last_paras, (last_states_mu, last_states_sigma), (last_paras_mu, last_paras_sigma)
 
-class cnn_fault_identifier(nn.Module):
+class cnn_fault_identifier2(nn.Module):
     def __init__(self, hs0_size, x_size, mode_size, state_size, para_size, cnn_size, fc0_size=[], fc1_size=[], fc2_size=[], fc3_size=[], fc4_size=[], T=500):
         '''
         cnn_size: (channel number,  kernel number)
         '''
-        super(cnn_fault_identifier, self).__init__()
+        super(cnn_fault_identifier2, self).__init__()
         self.hs0_size = hs0_size
         self.x_size = x_size
         self.mode_size = mode_size
@@ -203,7 +203,7 @@ class cnn_fault_identifier(nn.Module):
         self.ac22 = nn.ModuleList([nn.PReLU() for _ in range(len(fc2_maps)-2)])
         self.sigmoid22 = nn.Sigmoid()
         # FC3 module, which converts the inner states into system parameter faults
-        fc3_maps = [feature_num]+ fc3_size + [para_size+1] # no para fault + para fault size
+        fc3_maps = [feature_num]+ fc3_size + [para_size]
         self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
         self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)])
         self.sm3 = nn.Softmax(dim=1)

@@ -12,12 +12,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from fault_identifier import gru_fault_identifier
 from fault_identifier import cnn_fault_identifier
-from fault_identifier import one_mode_cross_entropy
-from fault_identifier import multi_mode_cross_entropy
-from fault_identifier import normal_stochastic_loss
-from fault_identifier import np2tensor
+from fault_identifier2 import gru_fault_identifier2
+from fault_identifier2 import cnn_fault_identifier2
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
+from utilities.utilities import one_mode_cross_entropy
+from utilities.utilities import multi_mode_cross_entropy
+from utilities.utilities import normal_stochastic_loss
+from utilities.utilities import np2tensor
 
 def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
@@ -53,7 +55,7 @@ def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, 
     else:
         print('#', end='', flush=True)
 
-def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask):
+def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask1, para_mask2):
     train_loss = []
     running_loss = np.zeros(5)
     running_state_mean_loss = np.zeros(6)
@@ -65,9 +67,9 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
         modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
-        para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
-        state_value_loss, mean_state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y), k=10)
-        para_value_loss, mean_para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p), k=10)
+        para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p), para_mask1)
+        state_value_loss, mean_state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y), 10)
+        para_value_loss, mean_para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p), 10, para_mask2)
         loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
@@ -78,8 +80,14 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
         optimizer.step()
     return train_loss
 
-def gru_model():
-    f_identifier = gru_fault_identifier(hs0_size=7,\
+def gru_model(i=1):
+    if i==1:
+        gru = gru_fault_identifier
+    elif i==2:
+        gru = gru_fault_identifier2
+    else:
+        raise RuntimeError('Unknown GRU.')
+    f_identifier = gru(hs0_size=7,\
                     x_size=5,\
                     mode_size=[6],\
                     state_size=6,\
@@ -92,8 +100,14 @@ def gru_model():
                     fc4_size=[128, 64, 32])
     return f_identifier
 
-def cnn_model(T):
-    f_identifier = cnn_fault_identifier(hs0_size=7,\
+def cnn_model(T, i=1):
+    if i==1:
+        cnn = cnn_fault_identifier
+    elif i==2:
+        cnn = cnn_fault_identifier2
+    else:
+        raise RuntimeError('Unknown CNN.')
+    f_identifier = cnn(hs0_size=7,\
                     x_size=5,\
                     mode_size=[6],\
                     state_size=6,\
@@ -123,12 +137,14 @@ def plot(train_loss, path, name):
 if __name__ == "__main__":
     debug = False
     window = 5
-    ann = 'cnn' # 'gru
+    ann = 'cnn' # 'gru', 'cnn2', 'gru2'
     key = 'debug' if debug else 'train'
     save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
+    para_mask1 = [1, 0, 0, 0] if ann.endswith('2') else None
+    para_mask2 = [0, 0, 0] if ann.endswith('2') else None
     model_name = 'ro0.{}'.format(ann)
     epoch = 2000
     batch = 500
@@ -142,14 +158,18 @@ if __name__ == "__main__":
     # the model
     if ann=='cnn':
         f_identifier = cnn_model(T)
+    elif ann=='cnn2':
+        f_identifier = cnn_model(T, 2)
     elif ann=='gru':
         f_identifier = gru_model()
+    elif ann=='gru2':
+        f_identifier = gru_model(2)
     else:
         raise RuntimeError('Unknown Model Type.')
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=1e-2)
     # train
-    train_loss = train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask)
+    train_loss = train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask1, para_mask2)
     # save model
     save_model(f_identifier, save_path, model_name)
     # figure
