@@ -44,7 +44,7 @@ if __name__ == '__main__':
     tracker.load_identifier(identifier)
     tracker.set_norm(norm_o, norm_s)
     tracker.set_sigma(states_sigma, paras_sigma)
-    tracker.track(modes=0, state_mean=[0,0,0,0,0,0], state_var=[0,0,0,0,0,0], observations=output_with_noise, limit=limit, Nmin=150, Nmax=150)
+    tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), observations=output_with_noise, limit=limit, Nmin=150, Nmax=150)
     tracker.plot_states()
     tracker.plot_modes()
     tracker.plot_res()
