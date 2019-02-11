@@ -129,7 +129,7 @@ if __name__ == "__main__":
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
-    model_name = 'ro1.{}'.format(ann)
+    model_name = 'ro0.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager

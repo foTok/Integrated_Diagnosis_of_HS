@@ -242,6 +242,6 @@ class data_manager:
         y_torch = torch.zeros((batch, num+1))
         for b in range(batch):
             para = y[b,:]
-            i = (para!=0)*base
+            i = np.sum((para!=0)*base)
             y_torch[b,i] = 1
         return y_torch

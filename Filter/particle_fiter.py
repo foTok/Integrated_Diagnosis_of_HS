@@ -207,7 +207,7 @@ class hpf: # hybrid particle filter
                 self.fd_close = None
         return r
 
-    def pf_is_close(self):
+    def pf_is_closed(self):
         r = False # not close
         if self.pf_close is not None:
             self.pf_close += self.hsw.step_len
@@ -273,22 +273,25 @@ class hpf: # hybrid particle filter
                 if i!=0:
                     rd = np.random.randn()
                     fp = rd*sigma[i-1] + mu[i-1]
-                    fp = min(1, max(0, fp)) # make sure fp belongs to (0, 1)
+                    fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
                     fault_paras[i-1] = fp
             else:
                 rd = np.random.randn()
                 fp = rd*sigma[i] + mu[i]
-                fp = min(1, max(0, fp)) # make sure fp belongs to (0, 1)
+                fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
                 fault_paras[i] = fp
         return fault_paras
 
     def step_particle(self, ptc, obs):
         p = ptc.clone()
-        # one step based on the partical
+        # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
-        states = self.hsw.state_step(modes, states, p.fault_paras)
+        # add noise to the particle
+        fault_paras_noise = 0.1*(p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.pf_is_closed() else np.zeros(len(p.fault_paras))
+        fault_paras = np.clip(p.fault_paras + fault_paras_noise, 0, 1)
+        states = self.hsw.state_step(modes, states, fault_paras)
         # add process noise
-        process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv) if not self.pf_is_close() else np.zeros(len(states))
+        process_noise = np.random.standard_normal(len(states))*np.sqrt(self.hsw.pv) if not self.pf_is_closed() else np.zeros(len(states))
         states += process_noise
         p.set_hs(modes, states)
         output = self.hsw.output(modes, states)
@@ -296,6 +299,7 @@ class hpf: # hybrid particle filter
         res = (obs - output)/np.sqrt(self.hsw.ov) # residual square
         Pobs = self.confidence(np.sum(res**2), len(res))
         p.set_weigth(p.weight*Pobs)
+        p.set_fault_para(fault_paras)
         return p, res
 
     def step(self, particles, obs):
@@ -317,10 +321,10 @@ class hpf: # hybrid particle filter
         N = int(t1/self.hsw.step_len)
         if len(self.Z)<N:
             return False
-        Z = np.array(self.Z)[-1-N:-1, :]
+        Z = np.array(self.Z[-N-1:])
         Z = Z.T
         Z = [(z==1).all() for z in Z]
-        return sum(Z)>=1
+        return (True in Z)
 
     def identify_fault(self, hs0, x):
         # hs0
@@ -363,6 +367,7 @@ class hpf: # hybrid particle filter
         if not has_fault:
             return None
         else:
+            self.N = self.Nmax
             self.fd_close = 0
             self.pf_close = 0
             particles = []
