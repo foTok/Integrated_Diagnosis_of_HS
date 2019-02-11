@@ -155,17 +155,18 @@ class hs_system_wrapper:
         self.hs.plot_paras(paras)
 
 class hpf: # hybrid particle filter
-    def __init__(self, hsw, back_len=10, conf=chi2_confidence):
+    def __init__(self, hsw, conf=chi2_confidence):
         self.N = None
         self.Nmin = None
         self.Nmax = None
         self.obs = None
-        self.back_len = int(back_len/hsw.step_len)
         self.confidence = conf
         self.hsw = hsw # hs_system_wrapper
         self.identifier = None
-        self.norm_o = np.array([1]*len(self.hsw.ov))
-        self.norm_s = np.array([1]*len(self.hsw.pv))
+        self.norm_o = np.ones(len(self.hsw.ov))
+        self.norm_s = np.ones(len(self.hsw.pv))
+        self.states_sigma = np.zeros(len(self.hsw.pv))
+        self.paras_sigma = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.states = []
@@ -177,6 +178,10 @@ class hpf: # hybrid particle filter
     def set_norm(self, norm_o, norm_s):
         self.norm_o = norm_o
         self.norm_s = norm_s
+
+    def set_sigma(self, states_sigma, paras_sigma):
+        self.states_sigma = states_sigma
+        self.paras_sigma = paras_sigma
 
     def load_identifier(self, file_name):
         if os.path.exists(file_name):
@@ -305,8 +310,8 @@ class hpf: # hybrid particle filter
         # reduce the first dimensional
         modes = [m[0,:] for m in modes]
         paras = paras[0,:]
-        states_mu, states_sigma = states_mu[0,:], states_sigma[0,:]
-        paras_mu, paras_sigma = paras_mu[0,:], paras_sigma[0,:]
+        states_mu, states_sigma = states_mu[0,:], (states_sigma[0,:] + self.states_sigma)
+        paras_mu, paras_sigma = paras_mu[0,:], (paras_sigma[0,:] + self.paras_sigma)
         return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)
 
     def hs0(self, N):
@@ -349,7 +354,7 @@ class hpf: # hybrid particle filter
             # reset the tracjectories based on estimated values
             # debug
             print('modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
-                  .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma))
+                  .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma), flush=True)
             # resample particles from the estimated values
             for _ in range(self.N):
                 ptc = self.sample_particle_from_ann(modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma), 1/self.N)
