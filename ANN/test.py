@@ -8,10 +8,10 @@ sys.path.insert(0,parentdir)
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from fault_identifier import fault_identifier
-from fault_identifier import multi_mode_cross_entropy
-from fault_identifier import normal_stochastic_loss
-from fault_identifier import np2tensor
+from fault_identifier import gru_fault_identifier
+from utilities.utilities import multi_mode_cross_entropy
+from utilities.utilities import normal_stochastic_loss
+from utilities.utilities import np2tensor
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
                                        norm_o=np.array([1,1,1,10e9,10e8]), \
                                        norm_s=np.array([1,1,1,30,10e9,10e8]))
 
-    ft = fault_identifier(hs0_size=7,\
+    ft = gru_fault_identifier(hs0_size=7,\
                           x_size=5,\
                           mode_size=[6],\
                           state_size=6,\
