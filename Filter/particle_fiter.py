@@ -223,7 +223,7 @@ class hpf: # hybrid particle filter
         disturbance *= np.sqrt(state_var)
         for i in range(N):
             states = state_mean + disturbance[i]
-            fault_paras = np.array([0]*len(self.hsw.para_faults()))
+            fault_paras = np.zeros(len(self.hsw.para_faults()))
             ptc = hybrid_particle(modes,\
                                   states,\
                                   fault_paras,\
@@ -262,24 +262,16 @@ class hpf: # hybrid particle filter
         sample = sample * self.norm_s # norm
         return sample
 
-    def sample_paras(self, paras, para_values, has_fault, mask_normal=True):
-        paras = paras if not mask_normal else paras[1:]
+    def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
+        paras = paras if len(paras)==len(mu) else paras[1:]
         fault_paras = np.zeros(len(mu))
-        if not has_fault:
+        if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
-            if not mask_normal:
-                # i=0 => no fault
-                if i!=0:
-                    rd = np.random.randn()
-                    fp = rd*sigma[i-1] + mu[i-1]
-                    fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
-                    fault_paras[i-1] = fp
-            else:
-                rd = np.random.randn()
-                fp = rd*sigma[i] + mu[i]
-                fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
-                fault_paras[i] = fp
+            rd = np.random.randn()
+            fp = rd*sigma[i] + mu[i]
+            fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
+            fault_paras[i] = fp
         return fault_paras
 
     def step_particle(self, ptc, obs):
