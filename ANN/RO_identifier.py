@@ -42,9 +42,7 @@ def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, 
         ave_loss = running_loss /  10
         ave_state_loss = running_state_mean_loss / 10
         ave_para_loss = running_para_mean_loss / 10
-        msg = '# %d loss:%.3f=%.3f+%.3f \
-              +%.3f(%.3f+%.3f+%.3f+%.3f+%.3f+%.3f) \
-              +%.3f(%.3f+%.3f+%.3f)' \
+        msg = '# %d loss:%.3f=%.3f+%.3f+%.3f(%.3f+%.3f+%.3f+%.3f+%.3f+%.3f)+%.3f(%.3f+%.3f+%.3f)' \
               %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], \
               ave_loss[3], ave_state_loss[0], ave_state_loss[1], ave_state_loss[2], ave_state_loss[3], ave_state_loss[4], ave_state_loss[5], \
               ave_loss[4], ave_para_loss[0], ave_para_loss[1], ave_para_loss[2])

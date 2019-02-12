@@ -374,7 +374,7 @@ class hpf: # hybrid particle filter
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             # reset the tracjectories based on estimated values
             # debug
-            print('modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
+            print('\nmodes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
                   .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma), flush=True)
             # resample particles from the estimated values
             for _ in range(self.N):
