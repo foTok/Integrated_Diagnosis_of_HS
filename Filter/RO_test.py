@@ -8,6 +8,7 @@ sys.path.insert(0,parentdir)
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import argparse
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
@@ -17,12 +18,20 @@ from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--index', type=int, help='choose the index of data set')
+    parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
+    parser.add_argument('-pf', '--pf', type=float, help='particle filter close window')
+    parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window') 
+    args = parser.parse_args()
+    # read parameters from environment
+    index = args.index
+    fd, pf, fp = (10 if args.fd is None else args.fd), (0 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
     si = 0.01
-    process_snr = 40
+    process_snr = 45
     obs_snr = 20
-    index = 106
     limit = (2, 3)
-    proportion = 0.85
+    proportion = 1.0
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
     identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro0.cnn2')
@@ -36,17 +45,16 @@ if __name__ == '__main__':
 
     state_sigma = np.sqrt(obtain_var(state, process_snr))
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
-    paras_sigma = np.sqrt([0.002, 0.000, 0.006])
 
     ro = RO(si)
-    hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
+    hsw = hs_system_wrapper(ro, state_sigma, obs_sigma*1.1)
     tracker = hpf(hsw)
     tracker.load_identifier(identifier)
     tracker.set_scale(state_scale, obs_scale)
-    tracker.set_paras_sigma(paras_sigma)
     tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
-                  observations=output_with_noise, limit=limit, proportion=proportion, \
-                  Nmin=150, Nmax=150)
+                  observations=output_with_noise, limit=limit, \
+                  fd=fd, pf=pf, fp=fp, proportion=proportion, \
+                  Nmin=150, Nmax=200)
     tracker.plot_states()
     tracker.plot_modes()
     tracker.plot_res()

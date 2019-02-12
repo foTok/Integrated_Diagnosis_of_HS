@@ -10,6 +10,8 @@ import torch
 import progressbar
 import numpy as np
 import matplotlib.pyplot as plt
+from math import log
+from math import exp
 from scipy.stats import chi2
 from scipy.stats import norm
 from Fault_diagnosis.fault_detector import Z_test
@@ -172,21 +174,18 @@ class hpf: # hybrid particle filter
         self.modes = []
         self.paras = []
         self.Z = []
-        self.fd_close = None # if fault detect closed
-        self.pf_close = None # if filter closed
+        self.t = 0 # time stamp
+        self.fd_close_time = None # time of fault detect closed
+        self.pf_close_time = None # time of particle fileter closed
+        self.fp_open_time = None # time of fault parameter learn open
         self.fd_close_window = 10
-        self.pf_close_window = 5
+        self.pf_close_window = 0
+        self.fp_open_window = 8
+        self.tmp_fault_paras = None
 
     def set_scale(self, state_scale, obs_scale):
         self.state_scale = state_scale
         self.obs_scale = obs_scale
-
-    def set_paras_sigma(self, paras_sigma):
-        self.paras_sigma = paras_sigma
-
-    def set_close_window(self, fd, pf):
-        self.fd_close_window = fd
-        self.pf_close_window = pf
 
     def load_identifier(self, file_name):
         if os.path.exists(file_name):
@@ -196,24 +195,62 @@ class hpf: # hybrid particle filter
             print('warning: model file does not exist, it is not changed.')
 
     def fd_is_closed(self):
-        r = False # not close
-        if self.fd_close is not None:
-            self.fd_close += self.hsw.step_len
-            if self.fd_close < self.fd_close_window:
+        r = False
+        if self.fd_close_time is not None:
+            if self.t < self.fd_close_time + self.fd_close_window:
                 r = True
-            else:
-                self.fd_close = None
+            else :
+                self.fd_close_time = None
         return r
 
     def pf_is_closed(self):
-        r = False # not close
-        if self.pf_close is not None:
-            self.pf_close += self.hsw.step_len
-            if self.pf_close < self.pf_close_window:
+        r = False
+        if self.pf_close_time is not None:
+            if self.t < self.pf_close_time + self.pf_close_window:
                 r = True
             else:
-                self.pf_close = None
+                self.pf_close_time = None
         return r
+
+    def fp_is_open(self):
+        r = False
+        if self.fp_open_time is not None:
+            if self.t < self.fp_open_time + self.fp_open_window:
+                r = True
+            else:
+                self.fp_open_time = None
+                self.N = self.Nmin
+        return r
+
+    def close_fd(self, t):
+        self.fd_close_window = t
+        self.fd_close_time = self.t
+
+    def close_pf(self, t):
+        self.pf_close_window = t 
+        self.pf_close_time = self.t
+
+    def open_fp(self, t):
+        self.fp_open_window = t
+        self.fp_open_time = self.t
+        self.N = self.Nmax
+        self.tmp_fault_paras = []
+
+    def collect_fault_paras(self, fault_paras):
+        if self.tmp_fault_paras is not None:
+            self.tmp_fault_paras.append(fault_paras)
+
+    def estimate_fault_paras(self):
+        if (self.tmp_fault_paras is None) or self.fp_is_open():
+            return None
+        paras = np.array(self.tmp_fault_paras)
+        n = (len(paras)*0.25) # the first 1/4 paras are not used because they are unstable.
+        paras = paras[n:,:]
+        paras = np.mean(paras, 0)
+        paras = np.array([(p if p>0.01 else 0) for p in paras])
+        self.tmp_fault_paras = None
+        print('\nFault paras estimated by PF are {}.'.format(paras), flush=True)
+        return paras
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -272,13 +309,14 @@ class hpf: # hybrid particle filter
             fault_paras[i] = fp
         return fault_paras
 
-    def step_particle(self, ptc, obs):
+    def step_particle(self, ptc, obs, ref_fault_paras):
         p = ptc.clone()
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         # add noise to the particle
-        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.pf_is_closed() else np.zeros(len(p.fault_paras))
-        fault_paras = np.clip(p.fault_paras + fault_paras_noise, 0, 1)
+        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
+        fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
+        fault_paras = np.clip(fault_paras_base + fault_paras_noise, 0, 1)
         states = self.hsw.state_step(modes, states, fault_paras)
         # add process noise
         process_noise = np.random.standard_normal(len(states))*self.hsw.state_sigma if not self.pf_is_closed() else np.zeros(len(states))
@@ -296,10 +334,12 @@ class hpf: # hybrid particle filter
         '''
         particles: hybrid_particle list
         '''
+        self.t += self.hsw.step_len
+        ref_fault_paras = self.estimate_fault_paras()
         particles_ip1 = []
         res = []
         for ptc in particles:
-            p, r = self.step_particle(ptc, obs)
+            p, r = self.step_particle(ptc, obs, ref_fault_paras)
             particles_ip1.append(p)
             res.append(r)
         normalize(particles_ip1)
@@ -312,8 +352,11 @@ class hpf: # hybrid particle filter
         if len(self.Z)<N:
             return False
         Z = np.array(self.Z[-N-1:])
-        Z = (np.mean(Z, 0)>proportion)
-        return (True in Z)
+        Z = (np.mean(Z, 0)>=proportion)
+        r = (True in Z)
+        if r:
+            print('\nDetect Fault at %.2f s' % self.t)
+        return r
 
     def identify_fault(self, hs0, x):
         # hs0
@@ -332,6 +375,7 @@ class hpf: # hybrid particle filter
         paras = paras[0,:]
         states_mu, states_sigma = states_mu[0,:], states_sigma[0,:]
         paras_mu, paras_sigma = paras_mu[0,:], paras_sigma[0,:]
+        self.paras_sigma = paras_sigma
         return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)
 
     def hs0(self, N):
@@ -347,7 +391,7 @@ class hpf: # hybrid particle filter
             hs0 = np.array(list(m0) + list(s0))
         return hs0
 
-    def fault_process(self, t0, t1, proportion):
+    def fault_process(self, t0, t1, fd, pf, fp, proportion):
         if self.identifier is None:
             return None
         if self.fd_is_closed():
@@ -356,9 +400,9 @@ class hpf: # hybrid particle filter
         if not has_fault:
             return None
         else:
-            self.N = self.Nmax
-            self.fd_close = 0
-            self.pf_close = 0
+            self.close_fd(fd)
+            self.close_pf(pf)
+            self.open_fp(fp)
             particles = []
             N = int((t0 + t1)/self.hsw.step_len)
             # jump back and find the initial states
@@ -371,7 +415,7 @@ class hpf: # hybrid particle filter
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             # reset the tracjectories based on estimated values
             # debug
-            print('\nmodes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
+            print('\nANN estimated results: modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
                   .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma), flush=True)
             # resample particles from the estimated values
             for _ in range(self.N):
@@ -379,14 +423,14 @@ class hpf: # hybrid particle filter
                 particles.append(ptc)
             return particles
 
-    def last_particles(self, limit, modes, state_mean, state_var, proportion):
-        particles = self.fault_process(limit[0], limit[1], proportion)
+    def last_particles(self, limit, modes, state_mean, state_var, fd, pf, fp, proportion):
+        particles = self.fault_process(limit[0], limit[1], fd, pf, fp, proportion)
         if particles is not None:
             return particles
         particles = self.tracjectory[-1] if self.tracjectory else self.init_particles(modes, state_mean, state_var, self.N)
         return particles
 
-    def track(self, modes, state_mean, state_var, observations, limit, proportion, Nmin, Nmax=None):
+    def track(self, modes, state_mean, state_var, observations, limit, fd, pf, fp, proportion, Nmin, Nmax=None):
         print('Tracking hybrid states...')
         self.obs = observations
         self.N = Nmin
@@ -397,13 +441,14 @@ class hpf: # hybrid particle filter
             i, obs_len = 0, len(observations)
             while i < obs_len:
                 obs = observations[i]
-                particles = self.last_particles(limit, modes, state_mean, state_var, proportion)
+                particles = self.last_particles(limit, modes, state_mean, state_var, fd, pf, fp, proportion)
                 particles_ip1, res = self.step(particles, obs)
                 ave_states = self.ave_states(particles_ip1)
                 ave_paras = self.ave_paras(particles_ip1)
                 probable_modes = self.probable_modes(particles_ip1)
                 self.states.append(ave_states)
                 self.paras.append(ave_paras)
+                self.collect_fault_paras(ave_paras)
                 self.modes.append(probable_modes)
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
