@@ -7,6 +7,7 @@ rootdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 sys.path.insert(0,rootdir)
 import numpy as np
 import progressbar
+import argparse
 from RO import RO
 from Systems.data_manager import cfg
 from Systems.data_manager import term
@@ -17,7 +18,11 @@ def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01,
     np.save(file_name, data)
 
 if __name__ == "__main__":
-    debug = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-k', '--key', type=str, help='set the key word.')
+    args = parser.parse_args()
+    # read parameters from environment
+    key = args.key
     this_path = os.path.dirname(os.path.abspath(__file__))
     fault_time_list = {'s_normal': np.concatenate((np.arange(128.23, 128.23+5.5, 0.5), \
                                    np.arange(128.23+5, 161.04-4.5, 2), \
@@ -49,18 +54,9 @@ if __name__ == "__main__":
                        'f_r':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
                                    np.arange(95.03+5, 128.23-4.5, 2), \
                                    np.arange(128.23-5, 128.23+5.5, 0.5), \
-                                   np.arange(128.23+5, 161.04-4.5, 2), \
-                                   np.arange(161.04-5, 161.04+5.5, 0.5),
-                                   np.arange(161.04+5, 190.78-4.5, 2),
-                                   np.arange(190.78-5, 190.78, 0.5)))} if not debug else \
-                      {'s_normal': range(128, 190, 30), \
-                       's_pressure':range(65, 128, 30), \
-                       's_reverse':range(95, 162, 30), \
-                       'f_f':range(90, 220, 50), \
-                       'f_m':range(90, 220, 50), \
-                       'f_r':range(90, 220, 50)}
+                                   np.arange(128.23+5, 161.04-4.5, 2)))}
     fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_m', 'f_r']
-    fault_magnitude_list = np.arange(0.05, 0.505, 0.05) if not debug else np.arange(0.05, 0.505, 0.25)
+    fault_magnitude_list = np.arange(0.05, 0.505, 0.05)
     file_num = 1
     for f in fault_type_list:
         if f.startswith('s'):
@@ -72,8 +68,8 @@ if __name__ == "__main__":
     progressbar.streams.wrap_stderr()
     with progressbar.ProgressBar(max_value=100) as bar:
         # normal
-        file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train2' if not debug else 'debug', i))
-        cfg_name = os.path.join(this_path, 'data\\{}\\RO.cfg'.format('train2' if not debug else 'debug'))
+        file_name = os.path.join(this_path, 'data\\{}\\{}'.format(key, i))
+        cfg_name = os.path.join(this_path, 'data\\{}\\RO.cfg'.format(key))
         i += 1
         bar.update(min(float('%.2f'%(i*100/file_num)), 100))
         path = os.path.dirname(file_name)
@@ -88,7 +84,7 @@ if __name__ == "__main__":
             for fault_time in fault_time_list[fault_type]:
                 _fault_magnitude_list = [None] if fault_type.startswith('s') else fault_magnitude_list
                 for fault_magnitude in _fault_magnitude_list:
-                    file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train2' if not debug else 'debug', i))
+                    file_name = os.path.join(this_path, 'data\\{}\\{}'.format(key, i))
                     i += 1
                     bar.update(min(float('%.2f'%(i*100/file_num)), 100))
                     ro = RO(sample_int)

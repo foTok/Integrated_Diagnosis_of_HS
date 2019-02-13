@@ -136,7 +136,9 @@ def plot(train_loss, path, name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--ann', type=str, choices=['cnn', 'gru', 'cnn2', 'gru2'], help='choose the cnn structure.')
-    parser.add_argument('-d', '--data', type=str, choices=['debug', 'train', 'train2'] ,help='choose the key values.')
+    parser.add_argument('-d', '--data', type=str, help='choose the key values.')
+    parser.add_argument('-s', '--start', type=int, help='start limit.')
+    parser.add_argument('-e', '--end', type=int, help='end limit.')
     args = parser.parse_args()
     window = 5
 
@@ -156,9 +158,11 @@ if __name__ == "__main__":
     si = 0.01
     obs_snr = 20
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(data_set))
+    if not os.path.exists(data_cfg):
+        raise RuntimeError('Data set does not exist.')
     data_mana = new_data_manager(data_cfg, si)
     T = int(window / si)
-    limit = (1, 2)
+    limit = (-3 if args.start is None else args.start, 2 if args.end is None else args.end)
     # the model
     if ann=='cnn':
         f_identifier = cnn_model(T)
