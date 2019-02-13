@@ -136,14 +136,12 @@ def plot(train_loss, path, name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--ann', type=str, choices=['cnn', 'gru', 'cnn2', 'gru2'], help='choose the cnn structure.')
-    parser.add_argument('-d', '--data', type=str, choices=['debug', 'train'] ,help='choose the key values.')
-    parser.add_argument('-i', '--index', type=int, help='choose set index.')
+    parser.add_argument('-d', '--data', type=str, choices=['debug', 'train', 'train2'] ,help='choose the key values.')
     args = parser.parse_args()
     window = 5
 
-    i = '' if args.index is None else str(args.index)
     ann = args.ann
-    data_set = args.data + i
+    data_set = args.data
 
     save_path =  os.path.join(this_path, 'RO\\{}'.format(data_set))
     if not os.path.isdir(save_path):
@@ -151,7 +149,7 @@ if __name__ == "__main__":
     mask = ['f_m']
     para_mask1 = [1, 0, 0, 0] if ann.endswith('2') else None
     para_mask2 = [0, 0, 0] if ann.endswith('2') else None
-    model_name = 'ro{}.{}'.format(i, ann)
+    model_name = 'ro.{}'
     epoch = 2000
     batch = 500
     # data manager
