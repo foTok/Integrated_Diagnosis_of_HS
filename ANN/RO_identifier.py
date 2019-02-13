@@ -7,6 +7,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 this_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0,parentdir)
 import torch
+import argparse
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
@@ -133,23 +134,30 @@ def plot(train_loss, path, name):
 
 
 if __name__ == "__main__":
-    debug = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--ann', type=str, choices=['cnn', 'gru', 'cnn2', 'gru2'], help='choose the cnn structure.')
+    parser.add_argument('-d', '--data', type=str, choices=['debug', 'train'] ,help='choose the key values.')
+    parser.add_argument('-i', '--index', type=int, help='choose set index.')
+    args = parser.parse_args()
     window = 5
-    ann = 'gru2' # 'gru', 'cnn2', 'gru2'
-    key = 'debug' if debug else 'train'
-    save_path =  os.path.join(this_path, 'RO\\{}'.format(key))
+
+    i = '' if args.index is None else str(args.index)
+    ann = args.ann
+    data_set = args.data + i
+
+    save_path =  os.path.join(this_path, 'RO\\{}'.format(data_set))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
     para_mask1 = [1, 0, 0, 0] if ann.endswith('2') else None
     para_mask2 = [0, 0, 0] if ann.endswith('2') else None
-    model_name = 'ro0.{}'.format(ann)
+    model_name = 'ro{}.{}'.format(i, ann)
     epoch = 2000
     batch = 500
     # data manager
     si = 0.01
     obs_snr = 20
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(key))
+    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(data_set))
     data_mana = new_data_manager(data_cfg, si)
     T = int(window / si)
     limit = (1, 2)
