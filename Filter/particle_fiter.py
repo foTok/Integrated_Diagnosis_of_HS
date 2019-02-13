@@ -175,6 +175,7 @@ class hpf: # hybrid particle filter
         self.paras = []
         self.Z = []
         self.t = 0 # time stamp
+        self.limit = None
         self.fd_close_time = None # time of fault detect closed
         self.pf_close_time = None # time of particle fileter closed
         self.fp_open_time = None # time of fault parameter learn open
@@ -244,7 +245,7 @@ class hpf: # hybrid particle filter
         if (self.tmp_fault_paras is None) or self.fp_is_open():
             return None
         paras = np.array(self.tmp_fault_paras)
-        n = (len(paras)*0.25) # the first 1/4 paras are not used because they are unstable.
+        n = int(len(paras)*0.25) # the first 1/4 paras are not used because they are unstable.
         paras = paras[n:,:]
         paras = np.mean(paras, 0)
         paras = np.array([(p if p>0.01 else 0) for p in paras])
@@ -355,7 +356,7 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('\nDetect Fault at %.2f s' % self.t)
+            print('\nDetect Fault at %.2f s' % (self.t - self.limit[1]))
         return r
 
     def identify_fault(self, hs0, x):
@@ -415,7 +416,7 @@ class hpf: # hybrid particle filter
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             # reset the tracjectories based on estimated values
             # debug
-            print('\nANN estimated results: modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
+            print('\nANN estimated results: modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}\n'\
                   .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma), flush=True)
             # resample particles from the estimated values
             for _ in range(self.N):
@@ -432,6 +433,7 @@ class hpf: # hybrid particle filter
 
     def track(self, modes, state_mean, state_var, observations, limit, fd, pf, fp, proportion, Nmin, Nmax=None):
         print('Tracking hybrid states...')
+        self.limit = limit
         self.obs = observations
         self.N = Nmin
         self.Nmin = Nmin

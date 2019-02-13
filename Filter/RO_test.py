@@ -35,7 +35,7 @@ if __name__ == '__main__':
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
     identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro0.cnn2')
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\train\\RO.cfg')
+    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
     data_mana.get_info(index)
     state = data_mana.select_states(index)

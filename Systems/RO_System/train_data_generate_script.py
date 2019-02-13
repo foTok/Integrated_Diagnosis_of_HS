@@ -19,12 +19,40 @@ def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01,
 if __name__ == "__main__":
     debug = False
     this_path = os.path.dirname(os.path.abspath(__file__))
-    fault_time_list = {'s_normal': range(128, 190, 3), \
-                       's_pressure':range(65, 128, 3), \
-                       's_reverse':range(95, 162, 3), \
-                       'f_f':range(90, 220, 5), \
-                       'f_m':range(90, 220, 5), \
-                       'f_r':range(90, 220, 5)} if not debug else \
+    fault_time_list = {'s_normal': np.concatenate((np.arange(128.23, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-4.5, 2), \
+                                   np.arange(161.04-5, 161.04+5.5, 0.5), \
+                                   np.arange(161.04+5, 190.78-4.5, 2))),\
+                       's_pressure':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(161.04, 161.04+5.5, 0.5), \
+                                   np.arange(161.04+5, 190.78-4.5, 2), \
+                                   np.arange(190.78-5, 190.78, 0.5))),\
+                       's_reverse':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-5, 2))),\
+                       'f_f':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-4.5, 2), \
+                                   np.arange(161.04-5, 161.04+5.5, 0.5),
+                                   np.arange(161.04+5, 190.78-4.5, 2),
+                                   np.arange(190.78-5, 190.78, 0.5))),\
+                       'f_m':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-4.5, 2), \
+                                   np.arange(161.04-5, 161.04+5.5, 0.5),
+                                   np.arange(161.04+5, 190.78-4.5, 2),
+                                   np.arange(190.78-5, 190.78, 0.5))), \
+                       'f_r':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-4.5, 2), \
+                                   np.arange(161.04-5, 161.04+5.5, 0.5),
+                                   np.arange(161.04+5, 190.78-4.5, 2),
+                                   np.arange(190.78-5, 190.78, 0.5)))} if not debug else \
                       {'s_normal': range(128, 190, 30), \
                        's_pressure':range(65, 128, 30), \
                        's_reverse':range(95, 162, 30), \
@@ -44,8 +72,8 @@ if __name__ == "__main__":
     progressbar.streams.wrap_stderr()
     with progressbar.ProgressBar(max_value=100) as bar:
         # normal
-        file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train' if not debug else 'debug', i))
-        cfg_name = os.path.join(this_path, 'data\\{}\\RO.cfg'.format('train' if not debug else 'debug'))
+        file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train2' if not debug else 'debug', i))
+        cfg_name = os.path.join(this_path, 'data\\{}\\RO.cfg'.format('train2' if not debug else 'debug'))
         i += 1
         bar.update(min(float('%.2f'%(i*100/file_num)), 100))
         path = os.path.dirname(file_name)
@@ -60,7 +88,7 @@ if __name__ == "__main__":
             for fault_time in fault_time_list[fault_type]:
                 _fault_magnitude_list = [None] if fault_type.startswith('s') else fault_magnitude_list
                 for fault_magnitude in _fault_magnitude_list:
-                    file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train' if not debug else 'debug', i))
+                    file_name = os.path.join(this_path, 'data\\{}\\{}'.format('train2' if not debug else 'debug', i))
                     i += 1
                     bar.update(min(float('%.2f'%(i*100/file_num)), 100))
                     ro = RO(sample_int)
