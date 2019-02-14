@@ -244,12 +244,10 @@ class hpf: # hybrid particle filter
         if (self.tmp_fault_paras is None) or self.fp_is_open():
             return None
         paras = np.array(self.tmp_fault_paras)
-        n = int(len(paras)*0.25) # the first 1/4 paras are not used because they are unstable.
-        paras = paras[n:,:]
         paras = np.mean(paras, 0)
         paras = np.array([(p if p>0.01 else 0) for p in paras])
         self.tmp_fault_paras = None
-        print('\nFault paras estimated by PF are {}.'.format(paras), flush=True)
+        print('Fault paras estimated by PF are {}.'.format(paras), flush=True)
         return paras
 
     def init_particles(self, modes, state_mean, state_var, N):
@@ -299,14 +297,15 @@ class hpf: # hybrid particle filter
 
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
-        paras = paras if len(paras)==len(mu) else paras[1:]
         fault_paras = np.zeros(len(mu))
         if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
-            rd = np.random.randn()
-            fp = rd*sigma[i] + mu[i]
-            fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
-            fault_paras[i] = fp
+            if (len(paras)==len(mu)) or (i!=0):
+                i = i if len(paras)==len(mu) else i-1
+                rd = np.random.randn()
+                fp = rd*sigma[i] + mu[i]
+                fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
+                fault_paras[i] = fp
         return fault_paras
 
     def step_particle(self, ptc, obs, ref_fault_paras):
@@ -355,7 +354,7 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('\nDetect Fault at %.2f s' % (self.t - t1))
+            print('Detect Fault at %.2f s' % (self.t - t1))
         return r
 
     def identify_fault(self, hs0, x):
@@ -415,7 +414,7 @@ class hpf: # hybrid particle filter
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
             # reset the tracjectories based on estimated values
             # debug
-            print('\nANN estimated results: modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}\n'\
+            print('ANN estimated results: modes={},paras={},state_mu={},state_sigma={},para_mu={},para_sigma={}'\
                   .format(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma), flush=True)
             # resample particles from the estimated values
             for _ in range(self.N):
@@ -437,10 +436,8 @@ class hpf: # hybrid particle filter
         self.Nmin = Nmin
         self.Nmax = 2*Nmin if Nmax is None else Nmax
         progressbar.streams.wrap_stderr()
-        with progressbar.ProgressBar(max_value=100) as bar:
-            i, obs_len = 0, len(observations)
-            while i < obs_len:
-                obs = observations[i]
+        with progressbar.ProgressBar(max_value=len(observations)*self.hsw.step_len, redirect_stdout=True) as bar:
+            for i, obs in enumerate(observations):
                 particles = self.last_particles(limit, modes, state_mean, state_var, fd, pf, fp, proportion)
                 particles_ip1, res = self.step(particles, obs)
                 ave_states = self.ave_states(particles_ip1)
@@ -452,10 +449,8 @@ class hpf: # hybrid particle filter
                 self.modes.append(probable_modes)
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
-                z = Z_test(self.res, 1000, 10)
-                self.Z.append(z)
-                bar.update(float('%.2f'%((i+1)*100/obs_len)))
-                i += 1
+                self.Z.append(Z_test(self.res, 1000, 10))
+                bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])

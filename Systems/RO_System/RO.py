@@ -195,9 +195,11 @@ class RO:
         # 0
         ax_lst[0, 0].plot(x, data[:, 0])
         ax_lst[0, 0].set_ylabel(RO.states[0])
+        plt.setp(ax_lst[0, 0].get_xticklabels(), visible=False)
         # 1
         ax_lst[1, 0].plot(x, data[:, 1])
         ax_lst[1, 0].set_ylabel(RO.states[1])
+        plt.setp(ax_lst[1, 0].get_xticklabels(), visible=False)
         # 2
         ax_lst[2, 0].plot(x, data[:, 2])
         ax_lst[2, 0].set_xlabel('Time/s')
@@ -205,9 +207,11 @@ class RO:
         # 3
         ax_lst[0, 1].plot(x, data[:, 3])
         ax_lst[0, 1].set_ylabel(RO.states[3])
+        plt.setp(ax_lst[0, 1].get_xticklabels(), visible=False)
         # 4
         ax_lst[1, 1].plot(x, data[:, 4])
         ax_lst[1, 1].set_ylabel(RO.states[4])
+        plt.setp(ax_lst[1, 1].get_xticklabels(), visible=False)
         # 5
         ax_lst[2, 1].plot(x, data[:, 5])
         ax_lst[2, 1].set_xlabel('Time/s')
@@ -216,10 +220,15 @@ class RO:
 
     def plot_modes(self, modes=None): # important interface
         data = self.np_modes() if modes is None else modes
+        mode_labels = ['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']
+        max_mode = int(max(data))
+        y_ticks_pos = range(max_mode+1)
+        y_ticks_label = mode_labels[:max_mode+1]
         x = np.arange(len(data))*self.step_len
         plt.plot(x, data)
         plt.xlabel('Time/s')
         plt.ylabel('Mode')
+        plt.yticks(y_ticks_pos, y_ticks_label)
         plt.title('System Modes')
         plt.show()
 
@@ -230,9 +239,11 @@ class RO:
         # 0
         ax_lst[0, 0].plot(x, data[:, 0])
         ax_lst[0, 0].set_ylabel('r1')
+        plt.setp(ax_lst[0, 0].get_xticklabels(), visible=False)
         # 1
         ax_lst[1, 0].plot(x, data[:, 1])
         ax_lst[1, 0].set_ylabel('r2')
+        plt.setp(ax_lst[1, 0].get_xticklabels(), visible=False)
         # 2
         ax_lst[2, 0].plot(x, data[:, 2])
         ax_lst[2, 0].set_xlabel('Time/s')
@@ -240,10 +251,13 @@ class RO:
         # 3
         ax_lst[0, 1].plot(x, data[:, 3])
         ax_lst[0, 1].set_ylabel('r4')
+        plt.setp(ax_lst[0, 1].get_xticklabels(), visible=False)
         # 4
         ax_lst[1, 1].plot(x, data[:, 4])
         ax_lst[1, 1].set_ylabel('r5')
         ax_lst[1, 1].set_xlabel('Time/s')
+        # 5
+        fig.delaxes(ax_lst[2, 1])
         plt.show()
 
     def plot_Z(self, data): # important interface
@@ -253,20 +267,35 @@ class RO:
         # 0
         ax_lst[0, 0].plot(x, data[:, 0])
         ax_lst[0, 0].set_ylabel('z1')
+        plt.setp(ax_lst[0, 0].get_xticklabels(), visible=False)
+        ax_lst[0, 0].set_yticks([0, 1])
+        ax_lst[0, 0].set_yticklabels([0, 1])
         # 1
         ax_lst[1, 0].plot(x, data[:, 1])
         ax_lst[1, 0].set_ylabel('z2')
+        plt.setp(ax_lst[1, 0].get_xticklabels(), visible=False)
+        ax_lst[1, 0].set_yticks([0, 1])
+        ax_lst[1, 0].set_yticklabels([0, 1])
         # 2
         ax_lst[2, 0].plot(x, data[:, 2])
         ax_lst[2, 0].set_xlabel('Time/s')
         ax_lst[2, 0].set_ylabel('z3')
+        ax_lst[2, 0].set_yticks([0, 1])
+        ax_lst[2, 0].set_yticklabels([0, 1])
         # 3
         ax_lst[0, 1].plot(x, data[:, 3])
         ax_lst[0, 1].set_ylabel('z4')
+        plt.setp(ax_lst[0, 1].get_xticklabels(), visible=False)
+        ax_lst[0, 1].set_yticks([0, 1])
+        ax_lst[0, 1].set_yticklabels([0, 1])
         # 4
         ax_lst[1, 1].plot(x, data[:, 4])
         ax_lst[1, 1].set_ylabel('z5')
         ax_lst[1, 1].set_xlabel('Time/s')
+        ax_lst[1, 1].set_yticks([0, 1])
+        ax_lst[1, 1].set_yticklabels([0, 1])
+        # 5
+        fig.delaxes(ax_lst[2, 1])
         plt.show()
 
     def plot_paras(self, data):
@@ -276,9 +305,11 @@ class RO:
         # 0
         ax_lst[0].plot(x, data[:, 0])
         ax_lst[0].set_ylabel('f_f')
+        plt.setp(ax_lst[0].get_xticklabels(), visible=False)
         # 1
         ax_lst[1].plot(x, data[:, 1])
         ax_lst[1].set_ylabel('f_r')
+        plt.setp(ax_lst[1].get_xticklabels(), visible=False)
         # 2
         ax_lst[2].plot(x, data[:, 2])
         ax_lst[2].set_xlabel('Time/s')

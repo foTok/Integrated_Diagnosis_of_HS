@@ -17,6 +17,7 @@ from utilities.utilities import obtain_var
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--ann', type=str, help='choose ann type')
     parser.add_argument('-d', '--data_set', type=str, help='choose data set name')
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
     parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window')
     args = parser.parse_args()
     # read parameters from environment
+    ann = args.ann
     index = args.index
     fd, pf, fp = (10 if args.fd is None else args.fd), (0 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
     si = 0.01
@@ -34,7 +36,7 @@ if __name__ == '__main__':
     data_set = args.data_set
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
-    identifier = os.path.join(parentdir, 'ANN\\RO\\{}\\ro.cnn2'.format(data_set))
+    identifier = os.path.join(parentdir, 'ANN\\RO\\{}\\ro.{}'.format(data_set, ann))
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
     data_mana.get_info(index)
