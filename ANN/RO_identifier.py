@@ -151,7 +151,7 @@ if __name__ == "__main__":
     mask = ['f_m']
     para_mask1 = [1, 0, 0, 0] if ann.endswith('2') else None
     para_mask2 = [0, 0, 0] if ann.endswith('2') else None
-    model_name = 'ro.{}'
+    model_name = 'ro.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager

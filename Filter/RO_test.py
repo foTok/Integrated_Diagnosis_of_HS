@@ -25,11 +25,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # read parameters from environment
     index = args.index
-    fd, pf, fp = (10 if args.fd is None else args.fd), (0 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
+    fd, pf, fp = (10 if args.fd is None else args.fd), (4 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
     si = 0.01
     process_snr = 45
     obs_snr = 20
-    limit = (2, 3)
+    limit = (3, 2)
     proportion = 1.0
     data_set = args.data_set
     state_scale =np.array([1,1,1,30,10e9,10e8])

@@ -10,11 +10,10 @@ import torch
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
-from fault_identifier import gru_fault_identifier
-from fault_identifier import one_mode_cross_entropy
-from fault_identifier import multi_mode_cross_entropy
-from fault_identifier import normal_stochastic_loss
-from fault_identifier import np2tensor
+from utilities.utilities import one_mode_cross_entropy
+from utilities.utilities import multi_mode_cross_entropy
+from utilities.utilities import normal_stochastic_loss
+from utilities.utilities import np2tensor
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 
@@ -49,7 +48,7 @@ def loss(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma, m, p, y):
     print(msg)
 
 if __name__ == "__main__":
-    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro0.cnn')
+    model_name = os.path.join(parentdir, 'ANN\\RO\\train3\\ro.cnn2')
     epoch = 0
     batch = 100
     # data manager

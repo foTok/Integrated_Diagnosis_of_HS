@@ -3,6 +3,7 @@ __pycache__
 debug
 train
 train2
+train3
 test
 data
 *.pyc
