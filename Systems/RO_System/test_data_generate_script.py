@@ -22,8 +22,8 @@ if __name__ == "__main__":
     fault_time_list = {'s_normal': [ round(t, 2) for t in uniform(128, 190, 2)], \
                        's_pressure':[ round(t, 2) for t in uniform(65, 128, 2)], \
                        's_reverse':[ round(t, 2) for t in uniform(95, 162, 2)], \
-                       'f_f':[ round(t, 2) for t in uniform(90, 220, 3)], \
-                       'f_r':[ round(t, 2) for t in uniform(90, 220, 3)]}
+                       'f_f':[ round(t, 2) for t in uniform(100, 180, 3)], \
+                       'f_r':[ round(t, 2) for t in uniform(100, 150, 3)]}
     fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
     fault_magnitude_list = [ round(p, 2) for p in uniform(0.1, 0.5, 3)]
     file_num = 1
