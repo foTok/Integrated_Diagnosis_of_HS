@@ -300,8 +300,8 @@ class hpf: # hybrid particle filter
         fault_paras = np.zeros(len(mu))
         if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
-            if (len(paras)==len(mu)) or (i!=0):
-                i = i if len(paras)==len(mu) else i-1
+            if i!=0:
+                i += -1
                 rd = np.random.randn()
                 fp = rd*sigma[i] + mu[i]
                 fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]

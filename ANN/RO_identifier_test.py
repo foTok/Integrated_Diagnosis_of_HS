@@ -48,13 +48,13 @@ def loss(modes, paras, states_mu, states_sigma, paras_mu, paras_sigma, m, p, y):
     print(msg)
 
 if __name__ == "__main__":
-    model_name = os.path.join(parentdir, 'ANN\\RO\\train3\\ro.cnn2')
+    model_name = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
     epoch = 0
     batch = 100
     # data manager
     si = 0.01
     obs_snr = 20
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\train\\RO.cfg')
+    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
     data_mana = new_data_manager(data_cfg, si)
     # the model
     f_identifier = load_model(model_name)
