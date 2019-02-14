@@ -300,6 +300,8 @@ class hpf: # hybrid particle filter
 
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
+        # for debug
+        mu = np.array([0.49, 0, 0])
         paras = paras if len(paras)==len(mu) else paras[1:]
         fault_paras = np.zeros(len(mu))
         if not has_fault: # no discrete mode fault.

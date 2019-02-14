@@ -44,18 +44,18 @@ if __name__ == "__main__":
                                    np.arange(161.04-5, 161.04+5.5, 0.5),
                                    np.arange(161.04+5, 190.78-4.5, 2),
                                    np.arange(190.78-5, 190.78, 0.5))),\
+                       'f_r':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
+                                   np.arange(95.03+5, 128.23-4.5, 2), \
+                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
+                                   np.arange(128.23+5, 161.04-4.5, 2))), \
                        'f_m':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
                                    np.arange(95.03+5, 128.23-4.5, 2), \
                                    np.arange(128.23-5, 128.23+5.5, 0.5), \
                                    np.arange(128.23+5, 161.04-4.5, 2), \
                                    np.arange(161.04-5, 161.04+5.5, 0.5),
                                    np.arange(161.04+5, 190.78-4.5, 2),
-                                   np.arange(190.78-5, 190.78, 0.5))), \
-                       'f_r':np.concatenate((np.arange(95.03, 95.03+5.5, 0.5), \
-                                   np.arange(95.03+5, 128.23-4.5, 2), \
-                                   np.arange(128.23-5, 128.23+5.5, 0.5), \
-                                   np.arange(128.23+5, 161.04-4.5, 2)))}
-    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_m', 'f_r']
+                                   np.arange(190.78-5, 190.78, 0.5)))}
+    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m']
     fault_magnitude_list = np.arange(0.05, 0.505, 0.05)
     file_num = 1
     for f in fault_type_list:

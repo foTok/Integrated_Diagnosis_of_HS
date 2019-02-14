@@ -34,9 +34,9 @@ class RO:
     # vars
     variables = ['mode', 'q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # fault parameters
-    f_parameters = ['f_f', 'f_m', 'f_r']
+    f_parameters = ['f_f', 'f_r', 'f_m']
     # labels
-    labels = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_m', 'f_r']
+    labels = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m']
     def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory
