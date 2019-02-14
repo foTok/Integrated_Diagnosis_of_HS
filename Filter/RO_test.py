@@ -47,7 +47,7 @@ if __name__ == '__main__':
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
 
     ro = RO(si)
-    hsw = hs_system_wrapper(ro, state_sigma, obs_sigma*1.1)
+    hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
     tracker = hpf(hsw)
     tracker.load_identifier(identifier)
     tracker.set_scale(state_scale, obs_scale)
