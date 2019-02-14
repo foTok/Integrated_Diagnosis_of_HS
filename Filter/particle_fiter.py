@@ -175,7 +175,6 @@ class hpf: # hybrid particle filter
         self.paras = []
         self.Z = []
         self.t = 0 # time stamp
-        self.limit = None
         self.fd_close_time = None # time of fault detect closed
         self.pf_close_time = None # time of particle fileter closed
         self.fp_open_time = None # time of fault parameter learn open
@@ -356,7 +355,7 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('\nDetect Fault at %.2f s' % (self.t - self.limit[1]))
+            print('\nDetect Fault at %.2f s' % (self.t - t1))
         return r
 
     def identify_fault(self, hs0, x):
@@ -433,7 +432,6 @@ class hpf: # hybrid particle filter
 
     def track(self, modes, state_mean, state_var, observations, limit, fd, pf, fp, proportion, Nmin, Nmax=None):
         print('Tracking hybrid states...')
-        self.limit = limit
         self.obs = observations
         self.N = Nmin
         self.Nmin = Nmin
