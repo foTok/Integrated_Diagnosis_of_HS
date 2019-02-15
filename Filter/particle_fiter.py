@@ -357,7 +357,7 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('At least one Z equals 1 from %.2f to %.2f s' % (self.t - t1, self.t))
+            print('At least one Z equals 1 from %.2f to %.2fs' % (self.t - t1, self.t))
         return r
 
     def identify_fault(self, hs0, x):
