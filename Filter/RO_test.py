@@ -20,17 +20,16 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ann', type=str, help='choose ann type')
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
     parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
-    parser.add_argument('-pf', '--pf', type=float, help='particle filter close window')
     parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window')
     args = parser.parse_args()
     # read parameters from environment
     ann = 'cnn' if args.ann is None else args.ann
     index = 0 if args.index is None else args.index
-    fd, pf, fp = (10 if args.fd is None else args.fd), (0 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
+    fd, fp = (3 if args.fd is None else args.fd), (8 if args.fp is None else args.fp)
     si = 0.01
     process_snr = 45
     obs_snr = 20
-    limit = (3, 2)
+    limit = (2, 3)
     proportion = 1.0
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     tracker.set_scale(state_scale, obs_scale)
     tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                   observations=output_with_noise, limit=limit, \
-                  fd=fd, pf=pf, fp=fp, proportion=proportion, \
+                  fd=fd, fp=fp, proportion=proportion, \
                   Nmin=150, Nmax=200)
     tracker.plot_states()
     tracker.plot_modes()
