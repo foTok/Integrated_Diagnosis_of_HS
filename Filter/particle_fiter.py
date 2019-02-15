@@ -209,8 +209,8 @@ class hpf: # hybrid particle filter
         if len(self.Z) >= window+1:
             Z = np.array(self.Z[-window:])
             if (Z==0).all():
-                self.fd_closed_flag = False
-                if (np.array(self.Z[-window-1])==1).any():
+                if self.fd_closed_flag:
+                    self.fd_closed_flag = False
                     print('Open fault detection at %.2fs.'% self.t, flush=True)
 
     def open_fp(self):
