@@ -18,7 +18,6 @@ from utilities.utilities import obtain_var
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--ann', type=str, help='choose ann type')
-    parser.add_argument('-d', '--data_set', type=str, help='choose data set name')
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
     parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
     parser.add_argument('-pf', '--pf', type=float, help='particle filter close window')
@@ -33,10 +32,9 @@ if __name__ == '__main__':
     obs_snr = 20
     limit = (3, 2)
     proportion = 1.0
-    data_set = args.data_set
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
-    identifier = os.path.join(parentdir, 'ANN\\RO\\{}\\ro.{}'.format(data_set, ann))
+    identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.{}'.format(ann))
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
     data_mana.get_info(index)
