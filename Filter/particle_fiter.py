@@ -10,6 +10,7 @@ import torch
 import progressbar
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 from math import log
 from math import exp
 from scipy.stats import chi2
@@ -178,10 +179,10 @@ class hpf: # hybrid particle filter
         self.t = 0 # time stamp
         self.fd_close_time = None # time of fault detect closed
         self.pf_close_time = None # time of particle fileter closed
-        self.fp_open_time = None # time of fault parameter learn open
+        self.fp_open_flag = False # if fault parameter estimation is open
         self.fd_close_window = 10
         self.pf_close_window = 0
-        self.fp_open_window = 8
+        self.fp_window = 10
         self.tmp_fault_paras = None
 
     def set_scale(self, state_scale, obs_scale):
@@ -214,14 +215,7 @@ class hpf: # hybrid particle filter
         return r
 
     def fp_is_open(self):
-        r = False
-        if self.fp_open_time is not None:
-            if self.t < self.fp_open_time + self.fp_open_window:
-                r = True
-            else:
-                self.fp_open_time = None
-                self.N = self.Nmin
-        return r
+        return self.fp_open_flag
 
     def close_fd(self, t):
         self.fd_close_window = t
@@ -232,8 +226,8 @@ class hpf: # hybrid particle filter
         self.pf_close_time = self.t
 
     def open_fp(self, t):
-        self.fp_open_window = t
-        self.fp_open_time = self.t
+        self.fp_window = t
+        self.fp_open_flag = True
         self.N = self.Nmax
         self.tmp_fault_paras = []
 
@@ -241,26 +235,25 @@ class hpf: # hybrid particle filter
         if self.tmp_fault_paras is not None:
             self.tmp_fault_paras.append(fault_paras)
 
-    def estimate_fault_paras(self):
-        if (self.tmp_fault_paras is None) or self.fp_is_open():
+    def estimate_fault_paras(self, p_thresh=0.05):
+        if (self.tmp_fault_paras is None):
             return None
-        paras = np.array(self.tmp_fault_paras)
-        n = len(paras)
-        paras = paras[int(0.75*n):,:]
-        paras = np.mean(paras, 0)
-        paras = np.array([(p if p>0.01 else 0) for p in paras])
-        self.tmp_fault_paras = None
-        print('Fault paras estimated by PF are {}.'.format(paras), flush=True)
-        return paras
-
-    def print_fault_paras(self):
-        if self.tmp_fault_paras is not None:
-            paras = np.array(self.tmp_fault_paras)
-            n = len(paras)
-            paras = paras[int(0.75*n):,:]
+        window_len = int(self.fp_window / self.hsw.step_len)
+        if len(self.tmp_fault_paras) < 2*window_len:
+            return None
+        paras1 = np.array(self.tmp_fault_paras[-window_len:])
+        paras2 = np.array(self.tmp_fault_paras[-2*window_len:-window_len])
+        _, p_values = stats.f_oneway(paras1.T, paras2.T)
+        if (p_values > p_thresh).all():
+            paras = np.array(self.tmp_fault_paras[-2*window_len:])
             paras = np.mean(paras, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
+            self.fp_open_flag = False
+            self.tmp_fault_paras = None
             print('Fault paras estimated by PF are {}.'.format(paras), flush=True)
+        else:
+            paras = None
+        return paras
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -465,7 +458,6 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
-            self.print_fault_paras()
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
