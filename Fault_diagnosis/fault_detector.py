@@ -8,7 +8,7 @@ sys.path.insert(0,parentdir)
 import numpy as np
 from scipy.stats import norm
 
-def Z_test(res, window1, window2, conf=0.99):
+def Z_test(res, window1, window2, conf=0.99, dynamic=False):
     '''
     |window1|window2|
     if the length of res is less that window1+window2, return 0 directly.
@@ -22,7 +22,7 @@ def Z_test(res, window1, window2, conf=0.99):
             _, n = res.shape
             return np.array([0]*n)
     # mean and variance of window1
-    res1 = res[-(window1+window2):-window2]
+    res1 = res[-(window1+window2):-window2] if dynamic else res[:window1+1]
     mean1, var1 = np.mean(res1, 0), np.var(res1, 0)
     # mean of window2
     res2 = res[-window2:]

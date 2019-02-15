@@ -357,7 +357,7 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('Detect Fault at %.2f s' % (self.t - t1))
+            print('At least one Z equals 1 from %.2f to %.2f s' % (self.t - t1, self.t))
         return r
 
     def identify_fault(self, hs0, x):
@@ -485,9 +485,8 @@ class hpf: # hybrid particle filter
         res = np.array(self.res)
         self.hsw.plot_res(res)
 
-    def plot_Z(self, N=50):
+    def plot_Z(self):
         Z = np.array(self.Z)
-        Z = smooth(Z, N)
         self.hsw.plot_Z(Z)
 
     def plot_paras(self):
