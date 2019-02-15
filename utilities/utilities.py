@@ -43,6 +43,16 @@ def smooth(data, N):
             new_data[i] = new_data[i-1] if i>0 else new_data[i]
     return new_data
 
+def dynamic_smooth(data, N):
+    # data: list of np.arrays.
+    assert N>=1
+    if len(data) < N+2:
+        return # do nothing
+    last_N1p = data[-N-1] # data at -(N+1)
+    last_N = data[-N:]
+    if not (last_N==last_N1p).all():
+        data[-N-1] = data[-N-2]
+
 def one_mode_cross_entropy(y_head, y, mask=None):
     '''
     args:

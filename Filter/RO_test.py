@@ -24,8 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window')
     args = parser.parse_args()
     # read parameters from environment
-    ann = args.ann
-    index = args.index
+    ann = 'cnn' if args.ann is None else args.ann
+    index = 3 if args.index is None else args.index
     fd, pf, fp = (10 if args.fd is None else args.fd), (0 if args.pf is None else args.pf), (8 if args.fp is None else args.fp)
     si = 0.01
     process_snr = 45

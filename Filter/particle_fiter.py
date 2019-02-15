@@ -17,6 +17,7 @@ from scipy.stats import norm
 from Fault_diagnosis.fault_detector import Z_test
 from utilities.utilities import np2tensor
 from utilities.utilities import smooth
+from utilities.utilities import dynamic_smooth
 
 def chi2_confidence(x, df):
     '''
@@ -325,6 +326,8 @@ class hpf: # hybrid particle filter
         # compute Pobs
         res = (obs - output)/self.hsw.obs_sigma # residual square
         Pobs = self.confidence(np.sum(res**2), len(res))
+        # weighted res
+        res = res*p.weight
         p.set_weigth(p.weight*Pobs)
         p.set_fault_para(fault_paras)
         return p, res
@@ -336,13 +339,12 @@ class hpf: # hybrid particle filter
         self.t += self.hsw.step_len
         ref_fault_paras = self.estimate_fault_paras()
         particles_ip1 = []
-        res = []
+        res = np.zeros(len(self.hsw.obs_sigma))
         for ptc in particles:
             p, r = self.step_particle(ptc, obs, ref_fault_paras)
             particles_ip1.append(p)
-            res.append(r)
+            res += r
         normalize(particles_ip1)
-        res = np.sum([p.weight*r for p, r in zip(particles_ip1, res)], 0)
         re_particles_ip1 = resample(particles_ip1, self.N)
         return re_particles_ip1, res
 
@@ -350,6 +352,7 @@ class hpf: # hybrid particle filter
         N = int(t1/self.hsw.step_len)
         if len(self.Z)<N:
             return False
+        dynamic_smooth(self.Z, 50)
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
