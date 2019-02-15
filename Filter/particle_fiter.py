@@ -245,11 +245,22 @@ class hpf: # hybrid particle filter
         if (self.tmp_fault_paras is None) or self.fp_is_open():
             return None
         paras = np.array(self.tmp_fault_paras)
+        n = len(paras)
+        paras = paras[int(0.75*n):,:]
         paras = np.mean(paras, 0)
         paras = np.array([(p if p>0.01 else 0) for p in paras])
         self.tmp_fault_paras = None
         print('Fault paras estimated by PF are {}.'.format(paras), flush=True)
         return paras
+
+    def print_fault_paras(self):
+        if self.tmp_fault_paras is not None:
+            paras = np.array(self.tmp_fault_paras)
+            n = len(paras)
+            paras = paras[int(0.75*n):,:]
+            paras = np.mean(paras, 0)
+            paras = np.array([(p if p>0.01 else 0) for p in paras])
+            print('Fault paras estimated by PF are {}.'.format(paras), flush=True)
 
     def init_particles(self, modes, state_mean, state_var, N):
         particles= []
@@ -454,6 +465,7 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
+            self.print_fault_paras()
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
