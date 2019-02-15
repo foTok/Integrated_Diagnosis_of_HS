@@ -352,7 +352,6 @@ class hpf: # hybrid particle filter
         N = int(t1/self.hsw.step_len)
         if len(self.Z)<N:
             return False
-        dynamic_smooth(self.Z, 50)
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
@@ -453,6 +452,7 @@ class hpf: # hybrid particle filter
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
                 self.Z.append(Z_test(self.res, 1000, 10))
+                dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
 
     def ave_states(self, ptcs):
@@ -487,6 +487,7 @@ class hpf: # hybrid particle filter
 
     def plot_Z(self):
         Z = np.array(self.Z)
+        Z = smooth(Z, 50)
         self.hsw.plot_Z(Z)
 
     def plot_paras(self):
