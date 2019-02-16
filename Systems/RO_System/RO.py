@@ -221,6 +221,7 @@ class RO:
             plt.show()
         else:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
+        plt.close()
 
     def plot_modes(self, modes=None, file_name=None): # important interface
         data = self.np_modes() if modes is None else modes
@@ -239,6 +240,7 @@ class RO:
             plt.show()
         else:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
+        plt.close()
 
     def plot_res(self, data, file_name=None): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
@@ -271,6 +273,7 @@ class RO:
             plt.show()
         else:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
+        plt.close()
 
     def plot_Z(self, data, file_name): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
@@ -313,6 +316,7 @@ class RO:
             plt.show()
         else:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
+        plt.close()
 
     def plot_paras(self, data, file_name=None):
         fig, ax_lst = plt.subplots(3, 1)  # A figure with a 3x2 grid of Axes
@@ -335,3 +339,4 @@ class RO:
             plt.show()
         else:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
+        plt.close()
