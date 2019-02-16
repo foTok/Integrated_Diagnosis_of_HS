@@ -8,6 +8,7 @@ sys.path.insert(0, rootdir)
 sys.path.insert(0, os.path.join(rootdir, 'ANN'))
 import torch
 import progressbar
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -143,20 +144,35 @@ class hs_system_wrapper:
     def output(self, mode, states):
         return self.hs.output(mode, states)
 
-    def plot_states(self, states):
-        self.hs.plot_states(states)
+    def plot_states(self, states, file_name=None):
+        if file_name is None:
+            self.hs.plot_states(states)
+        else:
+            self.hs.plot_states(states, file_name)
 
-    def plot_modes(self, modes):
-        self.hs.plot_modes(modes)
+    def plot_modes(self, modes, file_name=None):
+        if file_name is None:
+            self.hs.plot_modes(modes)
+        else:
+            self.hs.plot_modes(modes, file_name)
 
-    def plot_res(self, res):
-        self.hs.plot_res(res)
+    def plot_res(self, res, file_name=None):
+        if file_name is None:
+            self.hs.plot_res(res)
+        else:
+            self.hs.plot_res(res, file_name)
 
-    def plot_Z(self, Z):
-        self.hs.plot_Z(Z)
+    def plot_Z(self, Z, file_name=None):
+        if file_name is None:
+            self.hs.plot_Z(Z)
+        else:
+            self.hs.plot_Z(Z, file_name)
 
-    def plot_paras(self, paras):
-        self.hs.plot_paras(paras)
+    def plot_paras(self, paras, file_name=None):
+        if file_name is None:
+            self.hs.plot_paras(paras)
+        else:
+            self.hs.plot_paras(paras, file_name)
 
 class hpf: # hybrid particle filter
     def __init__(self, hsw, conf=chi2_confidence):
@@ -192,7 +208,9 @@ class hpf: # hybrid particle filter
             self.identifier = torch.load(file_name)
             self.identifier.eval()
         else:
-            print('warning: model file does not exist, it is not changed.', flush=True)
+            msg = 'warning: model file does not exist, it is not changed.'
+            print(msg, flush=True)
+            logging.info(msg)
 
     def fd_is_closed(self):
         return self.fd_closed_flag
@@ -202,7 +220,9 @@ class hpf: # hybrid particle filter
 
     def close_fd(self):
         self.fd_closed_flag = True
-        print('Close fault detection at %.2fs.' % self.t, flush=True)
+        msg = 'Close fault detection at %.2fs.' % self.t
+        print(msg, flush=True)
+        logging.info(msg)
 
     def check_fd(self):
         window = int(self.fd_window / self.hsw.step_len)
@@ -211,13 +231,17 @@ class hpf: # hybrid particle filter
             if (Z==0).all():
                 if self.fd_closed_flag:
                     self.fd_closed_flag = False
-                    print('Open fault detection at %.2fs.'% self.t, flush=True)
+                    msg = 'Open fault detection at %.2fs.'% self.t
+                    print(msg, flush=True)
+                    logging.info(msg)
 
     def open_fp(self):
         self.fp_open_flag = True
         self.N = self.Nmax
         self.tmp_fault_paras = []
-        print('Open fault parameter estimation at %.2fs.' % self.t, flush=True)
+        msg = 'Open fault parameter estimation at %.2fs.' % self.t
+        print(msg, flush=True)
+        logging.info(msg)
 
     def collect_fault_paras(self, fault_paras):
         if self.tmp_fault_paras is not None:
@@ -244,7 +268,9 @@ class hpf: # hybrid particle filter
             self.fp_open_flag = False
             self.tmp_fault_paras = None
             self.N = self.Nmin
-            print('Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4)), flush=True)
+            msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
+            print(msg, flush=True)
+            logging.info(msg)
         else:
             paras = None
         return paras
@@ -355,7 +381,9 @@ class hpf: # hybrid particle filter
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
         if r:
-            print('At least one Z equals 1 from %.2f to %.2fs.' % (self.t - t1, self.t), flush=True)
+            msg = 'At least one Z equals 1 from %.2f to %.2fs.' % (self.t - t1, self.t)
+            print(msg, flush=True)
+            logging.info(msg)
         return r
 
     def identify_fault(self, hs0, x):
@@ -412,15 +440,15 @@ class hpf: # hybrid particle filter
             x = x / self.obs_scale
             # use ann to estimate
             modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identify_fault(hs0, x)
-            # reset the tracjectories based on estimated values
-            # debug
-            print('ANN estimated results:\n\tmodes={},\n\tparas={},\n\tstate_mu={},\n\tstate_sigma={},\n\tpara_mu={},\n\tpara_sigma={}.'\
+            msg = 'ANN estimated results:\n\tmodes={},\n\tparas={},\n\tstate_mu={},\n\tstate_sigma={},\n\tpara_mu={},\n\tpara_sigma={}.'\
                   .format(np.round(np.array(modes), 4), \
                   np.round(paras, 4), \
                   np.round(states_mu, 4), \
                   np.round(states_sigma, 4), \
                   np.round(paras_mu, 4), \
-                  np.round(paras_sigma, 4)), flush=True)
+                  np.round(paras_sigma, 4))
+            print(msg, flush=True)
+            logging.info(msg)
             # resample particles from the estimated values
             for _ in range(self.N):
                 ptc = self.sample_particle_from_ann(modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma), 1/self.N)
@@ -435,7 +463,9 @@ class hpf: # hybrid particle filter
         return particles
 
     def track(self, modes, state_mean, state_var, observations, limit, fd, fp, proportion, Nmin, Nmax=None):
-        print('Tracking hybrid states...')
+        msg = 'Tracking hybrid states...'
+        print(msg, flush=True)
+        logging.info(msg)
         self.obs = observations
         self.fd_window = fd
         self.fp_window = fp
@@ -477,24 +507,27 @@ class hpf: # hybrid particle filter
         probable_modes = max(mode_dict, key=lambda p: mode_dict[p])
         return probable_modes
 
-    def plot_states(self):
+    def plot_states(self, file_name=None):
         data = np.array(self.states)
-        self.hsw.plot_states(data)
+        self.hsw.plot_states(data, file_name)
 
-    def plot_modes(self, N=50):
+    def plot_modes(self, N=50, file_name=None):
         data = np.array(self.modes)
         data = smooth(data, N)
-        self.hsw.plot_modes(data)
+        self.hsw.plot_modes(data, file_name)
 
-    def plot_res(self):
+    def plot_res(self, file_name=None):
         res = np.array(self.res)
-        self.hsw.plot_res(res)
+        self.hsw.plot_res(res, file_name)
 
-    def plot_Z(self):
+    def plot_Z(self, file_name=None):
         Z = np.array(self.Z)
         Z = smooth(Z, 50)
-        self.hsw.plot_Z(Z)
+        self.hsw.plot_Z(Z, file_name)
 
-    def plot_paras(self):
+    def plot_paras(self, file_name=None):
         paras = np.array(self.paras)
-        self.hsw.plot_paras(paras)
+        self.hsw.plot_paras(paras, file_name)
+
+    def set_log(self, file_name):
+        logging.basicConfig(filename=file_name, level=logging.INFO, filemode='a')

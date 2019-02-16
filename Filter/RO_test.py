@@ -50,12 +50,13 @@ if __name__ == '__main__':
     tracker = hpf(hsw)
     tracker.load_identifier(identifier)
     tracker.set_scale(state_scale, obs_scale)
+    tracker.set_log('log/ro.log')
     tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                   observations=output_with_noise, limit=limit, \
                   fd=fd, fp=fp, proportion=proportion, \
                   Nmin=150, Nmax=200)
-    tracker.plot_states()
-    tracker.plot_modes()
-    tracker.plot_res()
-    tracker.plot_Z()
-    tracker.plot_paras()
+    tracker.plot_states(file_name='log/states')
+    tracker.plot_modes(file_name='log/modes')
+    tracker.plot_res(file_name='log/res')
+    tracker.plot_Z(file_name='log/Z')
+    tracker.plot_paras(file_name='log/paras')

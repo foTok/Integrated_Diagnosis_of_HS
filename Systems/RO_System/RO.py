@@ -187,7 +187,7 @@ class RO:
         data = np.concatenate((modes, states), 1)
         return data
 
-    def plot_states(self, states=None): # important interface
+    def plot_states(self, states=None, file_name=None): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 2x3 grid of Axes
         fig.suptitle('System States')  # Add a title so we know which it is
         data = self.np_states() if states is None else states
@@ -216,9 +216,13 @@ class RO:
         ax_lst[2, 1].plot(x, data[:, 5])
         ax_lst[2, 1].set_xlabel('Time/s')
         ax_lst[2, 1].set_ylabel(RO.states[5])
-        plt.show()
+        plt.tight_layout(pad=2.0, w_pad=1.0, h_pad=1.0)
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
 
-    def plot_modes(self, modes=None): # important interface
+    def plot_modes(self, modes=None, file_name=None): # important interface
         data = self.np_modes() if modes is None else modes
         mode_labels = ['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']
         max_mode = int(max(data))
@@ -230,9 +234,13 @@ class RO:
         plt.ylabel('Mode')
         plt.yticks(y_ticks_pos, y_ticks_label)
         plt.title('System Modes')
-        plt.show()
+        plt.tight_layout(pad=1.0, w_pad=1.0, h_pad=1.0)
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
 
-    def plot_res(self, data): # important interface
+    def plot_res(self, data, file_name=None): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Residuals')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len
@@ -258,9 +266,13 @@ class RO:
         ax_lst[1, 1].set_xlabel('Time/s')
         # 5
         fig.delaxes(ax_lst[2, 1])
-        plt.show()
+        plt.tight_layout(pad=2.0, w_pad=1.0, h_pad=1.0)
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
 
-    def plot_Z(self, data): # important interface
+    def plot_Z(self, data, file_name): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Z values')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len
@@ -296,9 +308,13 @@ class RO:
         ax_lst[1, 1].set_yticklabels([0, 1])
         # 5
         fig.delaxes(ax_lst[2, 1])
-        plt.show()
+        plt.tight_layout(pad=2.0, w_pad=1.0, h_pad=1.0)
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
 
-    def plot_paras(self, data):
+    def plot_paras(self, data, file_name=None):
         fig, ax_lst = plt.subplots(3, 1)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Fault parameters')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len
@@ -314,4 +330,8 @@ class RO:
         ax_lst[2].plot(x, data[:, 2])
         ax_lst[2].set_xlabel('Time/s')
         ax_lst[2].set_ylabel('f_m')
-        plt.show()
+        plt.tight_layout(pad=2.0, w_pad=1.0, h_pad=1.0)
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
