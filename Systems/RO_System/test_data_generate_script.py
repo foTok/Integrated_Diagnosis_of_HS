@@ -19,11 +19,11 @@ def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01,
 
 if __name__ == "__main__":
     this_path = os.path.dirname(os.path.abspath(__file__))
-    fault_time_list = {'s_normal': [round(uniform(130, 140), 2),  round(uniform(160, 170), 2)], \
-                       's_pressure':[round(uniform(100, 110), 2),  round(uniform(160, 170), 2)], \
-                       's_reverse':[round(uniform(100, 110), 2),  round(uniform(130, 140), 2)], \
-                       'f_f':[round(uniform(100, 110), 2),  round(uniform(130, 140), 2),  round(uniform(160, 170), 2)], \
-                       'f_r':[round(uniform(100, 110), 2),  round(uniform(130, 140), 2),  round(uniform(160, 170), 2)]}
+    fault_time_list = {'s_normal': [round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
+                       's_pressure':[round(uniform(100, 110), 2),  round(uniform(160, 165), 2)], \
+                       's_reverse':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2)], \
+                       'f_f':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
+                       'f_r':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2),  round(uniform(160, 165), 2)]}
     fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
     fault_magnitude_list = [0.16, 0.26, 0.36]
     file_num = 1

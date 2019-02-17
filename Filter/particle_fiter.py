@@ -483,6 +483,7 @@ class hpf: # hybrid particle filter
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
                 self.Z.append(Z_test(self.res, 1000, 10))
+                dynamic_smooth(self.Z, 10)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
 
     def ave_states(self, ptcs):

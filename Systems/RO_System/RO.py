@@ -87,13 +87,13 @@ class RO:
         h3 = 0.0670
         p = state[3]
         if mode==0:
-            if abs(p-h1)<3 or abs(p-h3)<3:
+            if abs(p-h1)<2 or abs(p-h3)<3:
                 return True
         elif mode==1:
-            if abs(p-h2)<1 or abs(p-h1)<2:
+            if abs(p-h2)<0.5 or abs(p-h1)<0.5:
                 return True
         elif mode==2:
-            if abs(p-h3)<2 or abs(p-h2)<2:
+            if abs(p-h2)<1 or abs(p-h3)<2:
                 return True
         return False
 
