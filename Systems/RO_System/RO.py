@@ -81,22 +81,6 @@ class RO:
             self.states.append(state_i)
             self.outputs.append(output_i)
 
-    def close2switch(self, mode, state): # important interface
-        h1 = 28.6770
-        h2 = 17.2930
-        h3 = 0.0670
-        p = state[3]
-        if mode==0:
-            if abs(p-h1)<1 or abs(p-h3)<4:
-                return True
-        elif mode==1:
-            if abs(p-h2)<0.5 or abs(p-h1)<0.5:
-                return True
-        elif mode==2:
-            if abs(p-h2)<1 or abs(p-h3)<1:
-                return True
-        return False
-
     def mode_step(self, mode_i, state_i): # important interface
         h1 = 28.6770
         h2 = 17.2930

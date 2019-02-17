@@ -132,9 +132,6 @@ class hs_system_wrapper:
     def mode_names(self):
         return type(self.hs).modes
 
-    def close2switch(self, modes, states):
-        return self.hs.close2switch(modes, states)
-
     def mode_step(self, mode_i, state_i):
         return self.hs.mode_step(mode_i, state_i)
 
@@ -372,10 +369,6 @@ class hpf: # hybrid particle filter
         N = int(t1/self.hsw.step_len)
         if len(self.Z)<N:
             return False
-        close2switch = self.hsw.close2switch(self.modes[-1], self.states[-1])
-        if close2switch:
-            ref = np.round(np.mean(np.array(self.Z[-int(N/4)-1:-1]), 0))
-            self.Z[-1][:] = ref
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)

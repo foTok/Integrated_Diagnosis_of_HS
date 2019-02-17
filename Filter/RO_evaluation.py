@@ -26,7 +26,7 @@ start = 0 if args.start is None else args.start
 repeat = 10 if args.repeat is None else args.repeat
 print('repeat experiments {} times, start from index {}.'.format(repeat, start))
 
-fd, fp = 3, 8
+fd, fp = 1, 8
 si = 0.01
 process_snr = 45
 obs_snr = 20
