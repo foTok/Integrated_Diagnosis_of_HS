@@ -48,7 +48,7 @@ for k in range(start, start+repeat):
         output_with_noise = data_mana.select_outputs(i, obs_snr)
         state_sigma = np.sqrt(obtain_var(ref_state, process_snr))
         obs_sigma = np.sqrt(obtain_var(output, obs_snr))
-        log_path = 'log/{}'.format(i)
+        log_path = 'log/RO/{}'.format(i)
         if not os.path.isdir(log_path):
             os.makedirs(log_path)
         # create tracker and start tracking.
