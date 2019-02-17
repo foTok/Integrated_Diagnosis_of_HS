@@ -7,6 +7,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 import numpy as np
 import argparse
+import logging
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
@@ -37,9 +38,13 @@ identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
+logging.basicConfig(filename='log/RO/log_s{}_r{}.txt'.format(start, repeat), level=logging.INFO, filemode='a')
+
 for k in range(start, start+repeat):
     for i in range(len(data_mana.data)):
-        print('Track the {}th observation, {}th time.'.format(i, k))
+        msg = 'Track the {}th observation, {}th time.'.format(i, k)
+        print(msg)
+        logging.info(msg)
         # prepare evaluation environment.
         _, _, _, msg = data_mana.get_info(i, prt=False)
         ref_mode = data_mana.select_modes(i)
@@ -57,7 +62,6 @@ for k in range(start, start+repeat):
         tracker = hpf(hsw)
         tracker.load_identifier(identifier)
         tracker.set_scale(state_scale, obs_scale)
-        tracker.set_log('log/RO/{}/log{}.txt'.format(i, k))
         tracker.log_msg(msg)
         tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                     observations=output_with_noise, limit=limit, \

@@ -483,7 +483,7 @@ class hpf: # hybrid particle filter
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
                 self.Z.append(Z_test(self.res, 1000, 10))
-                dynamic_smooth(self.Z, 10)
+                dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
 
     def ave_states(self, ptcs):
@@ -524,9 +524,6 @@ class hpf: # hybrid particle filter
     def plot_paras(self, file_name=None):
         paras = np.array(self.paras)
         self.hsw.plot_paras(paras, file_name)
-
-    def set_log(self, file_name):
-        logging.basicConfig(filename=file_name, level=logging.INFO, filemode='a')
 
     def log_msg(self, msg):
         print(msg)
