@@ -57,16 +57,16 @@ for k in range(start, start+repeat):
         tracker = hpf(hsw)
         tracker.load_identifier(identifier)
         tracker.set_scale(state_scale, obs_scale)
-        tracker.set_log('log/{}/ro_log{}.txt'.format(i, k))
+        tracker.set_log('log/RO/{}/log{}.txt'.format(i, k))
         tracker.log_msg(msg)
         tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                     observations=output_with_noise, limit=limit, \
                     fd=fd, fp=fp, proportion=proportion, \
                     Nmin=150, Nmax=200)
-        tracker.plot_states(file_name='log/{}/states{}'.format(i, k))
-        tracker.plot_modes(file_name='log/{}/modes{}'.format(i, k))
-        tracker.plot_res(file_name='log/{}/res{}'.format(i, k))
-        tracker.plot_Z(file_name='log/{}/Z{}'.format(i, k))
-        tracker.plot_paras(file_name='log/{}/paras{}'.format(i, k))
+        tracker.plot_states(file_name='log/RO/{}/states{}'.format(i, k))
+        tracker.plot_modes(file_name='log/RO/{}/modes{}'.format(i, k))
+        tracker.plot_res(file_name='log/RO/{}/res{}'.format(i, k))
+        tracker.plot_Z(file_name='log/RO/{}/Z{}'.format(i, k))
+        tracker.plot_paras(file_name='log/RO/{}/paras{}'.format(i, k))
         tracker.evaluate_modes(ref_mode)
         tracker.evaluate_states(ref_state)
