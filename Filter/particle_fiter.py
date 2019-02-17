@@ -374,7 +374,8 @@ class hpf: # hybrid particle filter
             return False
         close2switch = self.hsw.close2switch(self.modes[-1], self.states[-1])
         if close2switch:
-            self.Z[-1][:] = 0
+            ref = np.round(np.mean(np.array(self.Z[-int(N/4)-1:-1]), 0))
+            self.Z[-1][:] = ref
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
         r = (True in Z)
