@@ -372,10 +372,12 @@ class hpf: # hybrid particle filter
         N = int(t1/self.hsw.step_len)
         if len(self.Z)<N:
             return False
+        close2switch = self.hsw.close2switch(self.modes[-1], self.states[-1])
+        if close2switch:
+            self.Z[-1][:] = 0
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
-        close2switch = self.hsw.close2switch(self.modes[-1], self.states[-1])
-        r = (True in Z) and (not close2switch)
+        r = (True in Z)
         if r:
             msg = 'At least one Z equals 1 from %.2f to %.2fs.' % (self.t - t1, self.t)
             self.log_msg(msg)
@@ -480,7 +482,6 @@ class hpf: # hybrid particle filter
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
                 self.Z.append(Z_test(self.res, 1000, 10))
-                # dynamic_smooth(self.Z, 10)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
 
     def ave_states(self, ptcs):
