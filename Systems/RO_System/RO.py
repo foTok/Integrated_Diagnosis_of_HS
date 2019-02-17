@@ -88,7 +88,7 @@ class RO:
         p = state[3]
         thresh0=1.0
         thresh1=1.0
-        thresh2=2.0
+        thresh2=3.0
         if mode==0:
             if abs(p-h1)<thresh0 or abs(p-h3)<thresh0:
                 return True
