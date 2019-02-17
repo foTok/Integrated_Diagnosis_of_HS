@@ -6,6 +6,7 @@ import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 import numpy as np
+import argparse
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
@@ -14,7 +15,16 @@ from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
 
-repeat = 10
+# get parameters from environment
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--start', type=int, help='start index')
+parser.add_argument('-r', '--repeat', type=int, help='repeat times')
+args = parser.parse_args()
+
+start = 0 if args.start is None else args.start
+repeat = 10 if args.repeat is None else args.repeat
+print('repeat experiments {} times, start from index {}.'.format(repeat, start))
+
 fd, fp = 3, 8
 si = 0.01
 process_snr = 45
@@ -27,7 +37,7 @@ identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
-for k in range(repeat):
+for k in range(start, start+repeat):
     for i in range(len(data_mana.data)):
         print('Track the {}th observation, {}th time.'.format(i, k))
         # prepare evaluation environment.
