@@ -38,7 +38,7 @@ identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
-log_path = 'log/RO'
+log_path = 'log\\RO'
 if not os.path.isdir(log_path):
     os.makedirs(log_path)
 logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)))
@@ -48,6 +48,10 @@ for k in range(start, start+repeat):
         msg = 'Track the {}th observation, {}th time.'.format(i, k)
         print(msg)
         logging.info(msg)
+        # figure path
+        fig_path = 'log\\RO\\{}'.format(i)
+        if not os.path.isdir(fig_path):
+            os.makedirs(fig_path)
         # prepare evaluation environment.
         _, _, _, msg = data_mana.get_info(i, prt=False)
         ref_mode = data_mana.select_modes(i)
@@ -67,10 +71,10 @@ for k in range(start, start+repeat):
                     observations=output_with_noise, limit=limit, \
                     fd=fd, fp=fp, proportion=proportion, \
                     Nmin=150, Nmax=200)
-        tracker.plot_states(file_name='log/RO/{}/states{}'.format(i, k))
-        tracker.plot_modes(file_name='log/RO/{}/modes{}'.format(i, k))
-        tracker.plot_res(file_name='log/RO/{}/res{}'.format(i, k))
-        tracker.plot_Z(file_name='log/RO/{}/Z{}'.format(i, k))
-        tracker.plot_paras(file_name='log/RO/{}/paras{}'.format(i, k))
+        tracker.plot_states(file_name=os.path.join(fig_path, 'states{}'.format(k)))
+        tracker.plot_modes(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
+        tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
+        tracker.plot_Z(file_name=os.path.join(fig_path, 'Z{}'.format(k)))
+        tracker.plot_paras(file_name=os.path.join(fig_path, 'paras{}'.format(k)))
         tracker.evaluate_modes(ref_mode)
         tracker.evaluate_states(ref_state)
