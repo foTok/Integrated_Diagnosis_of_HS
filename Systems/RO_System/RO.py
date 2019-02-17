@@ -86,15 +86,17 @@ class RO:
         h2 = 17.2930
         h3 = 0.0670
         p = state[3]
-        thresh=1.0
+        thresh0=1.0
+        thresh1=1.0
+        thresh2=2.0
         if mode==0:
-            if abs(p-h1)<thresh or abs(p-h3)<thresh:
+            if abs(p-h1)<thresh0 or abs(p-h3)<thresh0:
                 return True
         elif mode==1:
-            if abs(p-h2)<thresh or abs(p-h1)<thresh:
+            if abs(p-h2)<thresh1 or abs(p-h1)<thresh1:
                 return True
         elif mode==2:
-            if abs(p-h3)<thresh or abs(p-h2)<thresh:
+            if abs(p-h3)<thresh2 or abs(p-h2)<thresh2:
                 return True
         return False
 
