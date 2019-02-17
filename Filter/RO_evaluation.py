@@ -41,7 +41,7 @@ data_mana = data_manager(data_cfg, si)
 log_path = 'log\\RO'
 if not os.path.isdir(log_path):
     os.makedirs(log_path)
-logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)))
+logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)), level=logging.INFO)
 
 for k in range(start, start+repeat):
     for i in range(len(data_mana.data)):
