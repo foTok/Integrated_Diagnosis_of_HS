@@ -38,7 +38,10 @@ identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
-logging.basicConfig(filename='log/RO/log_s{}_r{}.txt'.format(start, repeat), level=logging.INFO, filemode='a')
+log_path = 'log/RO'
+if not os.path.isdir(log_path):
+    os.makedirs(log_path)
+logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)))
 
 for k in range(start, start+repeat):
     for i in range(len(data_mana.data)):
@@ -53,9 +56,6 @@ for k in range(start, start+repeat):
         output_with_noise = data_mana.select_outputs(i, obs_snr)
         state_sigma = np.sqrt(obtain_var(ref_state, process_snr))
         obs_sigma = np.sqrt(obtain_var(output, obs_snr))
-        log_path = 'log/RO/{}'.format(i)
-        if not os.path.isdir(log_path):
-            os.makedirs(log_path)
         # create tracker and start tracking.
         ro = RO(si)
         hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
