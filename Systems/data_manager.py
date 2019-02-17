@@ -107,8 +107,10 @@ class data_manager:
         data = self.data[index]
         output_index = [self.cfg.variable_names.index(name) for name in self.cfg.output_names]
         outputs = data[:,output_index]
-        x = np.arange(0, len(outputs), int(self.sample_int/self.cfg.sample_int))
-        x = x[1:]
+        # x = np.arange(0, len(outputs), int(self.sample_int/self.cfg.sample_int))
+        # x = x[1:]
+        interval = int(self.sample_int/self.cfg.sample_int)
+        x = np.arange(interval, len(outputs)+1, interval)-1
         outputs = outputs[x, :]
         # add noise
         outputs_with_noise = add_noise(outputs, snr_or_pro)
@@ -120,8 +122,10 @@ class data_manager:
         data = self.data[index]
         modes_index = [self.cfg.variable_names.index(name) for name in self.cfg.mode_names]
         modes = data[:,modes_index]
-        x = np.arange(0, len(modes), int(self.sample_int/self.cfg.sample_int))
-        x = x[1:]
+        # x = np.arange(0, len(modes), int(self.sample_int/self.cfg.sample_int))
+        # x = x[1:]
+        interval = int(self.sample_int/self.cfg.sample_int)
+        x = np.arange(interval, len(modes)+1, interval)-1
         modes = modes[x, :]
         return modes
 
@@ -133,10 +137,10 @@ class data_manager:
         fault_type = term.fault_type
         fault_magnitude = term.fault_magnitude
         fault_time = term.fault_time
+        msg = 'fault {} with magnitude {} at {}s.'.format(fault_type, fault_magnitude, fault_time)
         if prt:
-            print('fault {} with magnitude {} at {}s.'\
-                  .format(fault_type, fault_magnitude, fault_time))
-        return fault_type, fault_magnitude, fault_time
+            print(msg)
+        return fault_type, fault_magnitude, fault_time, msg
 
     def get_labels(self):
         return self.labels

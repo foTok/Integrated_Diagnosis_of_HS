@@ -209,8 +209,7 @@ class hpf: # hybrid particle filter
             self.identifier.eval()
         else:
             msg = 'warning: model file does not exist, it is not changed.'
-            print(msg, flush=True)
-            logging.info(msg)
+            self.log_msg(msg)
 
     def fd_is_closed(self):
         return self.fd_closed_flag
@@ -221,8 +220,7 @@ class hpf: # hybrid particle filter
     def close_fd(self):
         self.fd_closed_flag = True
         msg = 'Close fault detection at %.2fs.' % self.t
-        print(msg, flush=True)
-        logging.info(msg)
+        self.log_msg(msg)
 
     def check_fd(self):
         window = int(self.fd_window / self.hsw.step_len)
@@ -232,16 +230,14 @@ class hpf: # hybrid particle filter
                 if self.fd_closed_flag:
                     self.fd_closed_flag = False
                     msg = 'Open fault detection at %.2fs.'% self.t
-                    print(msg, flush=True)
-                    logging.info(msg)
+                    self.log_msg(msg)
 
     def open_fp(self):
         self.fp_open_flag = True
         self.N = self.Nmax
         self.tmp_fault_paras = []
         msg = 'Open fault parameter estimation at %.2fs.' % self.t
-        print(msg, flush=True)
-        logging.info(msg)
+        self.log_msg(msg)
 
     def collect_fault_paras(self, fault_paras):
         if self.tmp_fault_paras is not None:
@@ -269,8 +265,7 @@ class hpf: # hybrid particle filter
             self.tmp_fault_paras = None
             self.N = self.Nmin
             msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
-            print(msg, flush=True)
-            logging.info(msg)
+            self.log_msg(msg)
         else:
             paras = None
         return paras
@@ -382,8 +377,7 @@ class hpf: # hybrid particle filter
         r = (True in Z)
         if r:
             msg = 'At least one Z equals 1 from %.2f to %.2fs.' % (self.t - t1, self.t)
-            print(msg, flush=True)
-            logging.info(msg)
+            self.log_msg(msg)
         return r
 
     def identify_fault(self, hs0, x):
@@ -447,8 +441,7 @@ class hpf: # hybrid particle filter
                   np.round(states_sigma, 4), \
                   np.round(paras_mu, 4), \
                   np.round(paras_sigma, 4))
-            print(msg, flush=True)
-            logging.info(msg)
+            self.log_msg(msg)
             # resample particles from the estimated values
             for _ in range(self.N):
                 ptc = self.sample_particle_from_ann(modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma), 1/self.N)
@@ -464,8 +457,7 @@ class hpf: # hybrid particle filter
 
     def track(self, modes, state_mean, state_var, observations, limit, fd, fp, proportion, Nmin, Nmax=None):
         msg = 'Tracking hybrid states...'
-        print(msg, flush=True)
-        logging.info(msg)
+        self.log_msg(msg)
         self.obs = observations
         self.fd_window = fd
         self.fp_window = fp
@@ -531,3 +523,41 @@ class hpf: # hybrid particle filter
 
     def set_log(self, file_name):
         logging.basicConfig(filename=file_name, level=logging.INFO, filemode='a')
+
+    def log_msg(self, msg):
+        print(msg)
+        logging.info(msg)
+
+    def evaluate_modes(self, ref_modes):
+        modes = np.array(self.modes)
+        if len(modes.shape)==1:
+            ref_modes = ref_modes.reshape(-1)
+        res = np.abs(modes - ref_modes)
+        wrong_num = np.sum(res!=0, 0)
+        accuracy = np.mean(res==0, 0)
+        msg = 'Wrong mode number = {}, accuracy = {}.'.format(wrong_num, np.round(accuracy, 4))
+        self.log_msg(msg)
+        return wrong_num, accuracy
+
+    def evaluate_states(self, ref_states):
+        est_states = np.array(self.states)
+        # abs error 
+        res = est_states - ref_states
+        mu = np.mean(res, 0)
+        sigma = np.std(res, 0)
+        msg = 'States error mu = {}, sigma = {}.'.format(np.round(mu, 4), np.round(sigma, 4))
+        self.log_msg(msg)
+        # relative error
+        # normalize factor
+        ref_mu = np.mean(ref_states, 0)
+        ref_sigma = np.std(ref_states, 0)
+        # normalize ref states
+        n_ref_states = (ref_states - ref_mu)/ref_sigma
+        # normalize estimated states
+        n_est_states = (est_states - ref_mu)/ref_sigma
+        n_res = n_est_states - n_ref_states
+        n_mu = np.mean(n_res, 0)
+        n_sigma = np.std(n_res, 0)
+        msg = 'States error n_mu = {}, n_sigma = {}.'.format(np.round(n_mu, 4), np.round(n_sigma, 4))
+        self.log_msg(msg)
+        return mu, sigma

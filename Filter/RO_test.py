@@ -36,7 +36,7 @@ if __name__ == '__main__':
     identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.{}'.format(ann))
     data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
     data_mana = data_manager(data_cfg, si)
-    data_mana.get_info(index)
+    msg = data_mana.get_info(index, prt=False)
     state = data_mana.select_states(index)
     state_with_noise = data_mana.select_states(index, process_snr)
     output = data_mana.select_outputs(index)
@@ -51,6 +51,7 @@ if __name__ == '__main__':
     tracker.load_identifier(identifier)
     tracker.set_scale(state_scale, obs_scale)
     tracker.set_log('log/ro.log')
+    tracker.log_msg(msg)
     tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                   observations=output_with_noise, limit=limit, \
                   fd=fd, fp=fp, proportion=proportion, \
