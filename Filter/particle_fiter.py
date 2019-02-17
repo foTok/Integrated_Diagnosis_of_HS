@@ -374,7 +374,8 @@ class hpf: # hybrid particle filter
             return False
         Z = np.array(self.Z[-N-1:])
         Z = (np.mean(Z, 0)>=proportion)
-        r = (True in Z)
+        close2switch = self.hsw.close2switch(self.modes[-1], self.states[-1])
+        r = (True in Z) and (not close2switch)
         if r:
             msg = 'At least one Z equals 1 from %.2f to %.2fs.' % (self.t - t1, self.t)
             self.log_msg(msg)
