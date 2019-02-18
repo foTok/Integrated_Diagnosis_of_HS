@@ -353,6 +353,8 @@ class hpf: # hybrid particle filter
         # compute Pobs
         res = (obs - output)/self.hsw.obs_sigma # residual square
         Pobs = self.confidence(np.sum(res**2), len(res))
+        # weighted res
+        res *= p.weight
         p.set_weigth(p.weight*Pobs)
         p.set_fault_para(fault_paras)
         return p, res
@@ -365,13 +367,12 @@ class hpf: # hybrid particle filter
         self.check_fd()
         ref_fault_paras = self.estimate_fault_paras()
         particles_ip1 = []
-        res = []
+        res = np.zeros(len(self.hsw.obs_sigma))
         for ptc in particles:
             p, r = self.step_particle(ptc, obs, ref_fault_paras)
             particles_ip1.append(p)
-            res.append(r)
+            res += r
         normalize(particles_ip1)
-        res = sum([p.weight*r for p, r in zip(particles_ip1, res)])
         re_particles_ip1 = resample(particles_ip1, self.N)
         return re_particles_ip1, res
 
@@ -486,7 +487,7 @@ class hpf: # hybrid particle filter
                 self.tracjectory.append(particles_ip1)
                 self.res.append(res)
                 self.Z.append(Z_test(self.res, 1000, 10))
-                dynamic_smooth(self.Z, 10)
+                dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                 # logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
 
