@@ -344,7 +344,7 @@ class hpf: # hybrid particle filter
         # probabiity will reduce the weights of the translated partilces, which
         # will be ignored by resample in turn.
         if modes!=p.mode_values:
-            modes = modes if np.random.uniform()<0.9 else p.mode_values
+            modes, states = (modes, states) if np.random.uniform()<0.9 else (p.mode_values, p.state_values)
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
