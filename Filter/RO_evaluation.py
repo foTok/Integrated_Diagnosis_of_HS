@@ -73,6 +73,7 @@ for k in range(start, start+repeat):
         tracker = hpf(hsw)
         tracker.load_identifier(identifier)
         tracker.set_scale(state_scale, obs_scale)
+        tracker.set_output_names(output_names)
         tracker.log_msg(msg)
         tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                     observations=output_with_noise, limit=limit, \
