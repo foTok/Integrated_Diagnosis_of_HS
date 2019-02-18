@@ -28,8 +28,8 @@ args = parser.parse_args()
 start = 0 if args.start is None else args.start
 repeat = 10 if args.repeat is None else args.repeat
 ann = 'ro2' if args.ann==1 else 'ro'
-Nmin = 50 if args.nmin is None else args.nmin
-Nmax = 80 if args.nmax is None else args.nmax
+Nmin = 100 if args.nmin is None else args.nmin
+Nmax = 150 if args.nmax is None else args.nmax
 print('repeat experiments {} times, start from index {}.'.format(repeat, start))
 
 fd, fp = 1, 8
