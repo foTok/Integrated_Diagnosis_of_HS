@@ -36,6 +36,7 @@ limit = (3, 2)
 proportion = 1.0
 state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10e9, 10e8])
+output_names = ['q_fp', 'p_tr', 'p_memb', 'e_Cbrine', 'e_Ck'] if args.ann==1 else None
 identifier = os.path.join(parentdir, 'ANN\\RO\\train\\{}.cnn'.format(ann))
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
@@ -58,8 +59,8 @@ for k in range(start, start+repeat):
         _, _, _, msg = data_mana.get_info(i, prt=False)
         ref_mode = data_mana.select_modes(i)
         ref_state = data_mana.select_states(i)
-        output = data_mana.select_outputs(i)
-        output_with_noise = data_mana.select_outputs(i, obs_snr)
+        output = data_mana.select_outputs(i, output_names=output_names)
+        output_with_noise = data_mana.select_outputs(i, obs_snr, output_names=output_names)
         state_sigma = np.sqrt(obtain_var(ref_state, process_snr))
         obs_sigma = np.sqrt(obtain_var(output, obs_snr))
         # create tracker and start tracking.
