@@ -167,9 +167,13 @@ class RO:
             states_ip1 = add_noise(states_ip1, self.state_disturb)
         return states_ip1
 
-    def output(self, mode, states): # important interface
-        q_fp, p_tr, q_rp, _, e_Cbrine, e_Ck = states
-        return [q_fp, p_tr, q_rp, e_Cbrine, e_Ck]
+    def output(self, mode, states, output_names=None): # important interface
+        output_names = output_names if output_names is not None else RO.outputs
+        outputs = []
+        for o in output_names:
+            i = RO.states.index(o)
+            outputs.append(states[i])
+        return outputs
 
     def np_modes(self):
         return np.array(self.modes)

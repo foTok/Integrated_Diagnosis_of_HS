@@ -138,8 +138,11 @@ class hs_system_wrapper:
     def state_step(self, mode_ip1, state_i, fault_parameters):
         return self.hs.state_step(mode_ip1, state_i, fault_parameters)
 
-    def output(self, mode, states):
-        return self.hs.output(mode, states)
+    def output(self, mode, states, output_names=None):
+        if output_names is None:
+            return self.hs.output(mode, states)
+        else:
+            return self.hs.output(mode, states, output_names)
 
     def plot_states(self, states, file_name=None):
         if file_name is None:
@@ -195,6 +198,10 @@ class hpf: # hybrid particle filter
         self.fd_window = None
         self.fp_window = None
         self.tmp_fault_paras = None
+        self.output_names = None
+
+    def set_output_names(self, names):
+        self.output_names = names
 
     def set_scale(self, state_scale, obs_scale):
         self.state_scale = state_scale
@@ -337,7 +344,7 @@ class hpf: # hybrid particle filter
         # probabiity will reduce the weights of the translated partilces, which
         # will be ignored by resample in turn.
         if modes!=p.mode_values:
-            modes = modes if np.random.uniform()<0.9 else p.mode_values
+            modes = modes if np.random.uniform()<0.6 else p.mode_values
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
@@ -347,7 +354,8 @@ class hpf: # hybrid particle filter
         process_noise = np.random.standard_normal(len(states))*self.hsw.state_sigma
         states += process_noise
         p.set_hs(modes, states)
-        output = self.hsw.output(modes, states)
+        # compute outputs
+        output = self.hsw.output(modes, states, self.output_names)
         # compute Pobs
         res = (obs - output)/self.hsw.obs_sigma # residual square
         Pobs = self.confidence(np.sum(res**2), len(res))

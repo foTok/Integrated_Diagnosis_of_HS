@@ -100,12 +100,13 @@ class data_manager:
             states_with_noise = states_with_noise / norm
         return states_with_noise
 
-    def select_outputs(self, index, snr_or_pro=None, norm=None):
+    def select_outputs(self, index, snr_or_pro=None, norm=None, output_names=None):
         '''
         select all the outputs of the index_th file
         '''
         data = self.data[index]
-        output_index = [self.cfg.variable_names.index(name) for name in self.cfg.output_names]
+        output_names = output_names if output_names is not None else self.cfg.output_names
+        output_index = [self.cfg.variable_names.index(name) for name in output_names]
         outputs = data[:,output_index]
         # x = np.arange(0, len(outputs), int(self.sample_int/self.cfg.sample_int))
         # x = x[1:]
@@ -151,7 +152,7 @@ class data_manager:
             mode_size.append(len(self.cfg.mode_names[m]))
         return mode_size
 
-    def sample(self, size, window, limit, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[]):
+    def sample(self, size, window, limit, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[], output_names=None):
         '''
         size:
             int, the number of sampled data.
@@ -196,7 +197,7 @@ class data_manager:
             for _ in range(iter_size):
                 i = indexes[random.randint(0, len(indexes)-1)]
                 term = self.cfg.terms[i]
-                outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o)
+                outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o, output_names=output_names)
                 states_i = self.select_states(i, norm=norm_s)
                 modes_i = self.select_modes(i)
             # 3. pick out data in a window
