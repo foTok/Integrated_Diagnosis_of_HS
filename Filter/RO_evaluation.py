@@ -52,7 +52,7 @@ logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(sta
 
 for k in range(start, start+repeat):
     for i in range(len(data_mana.data)):
-        msg = 'Track the {}th observation, {}th time.'.format(i, k)
+        msg = '\n************Track the {}th observation, {}th time.************'.format(i, k)
         print(msg)
         logging.info(msg)
         # figure path

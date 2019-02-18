@@ -488,8 +488,7 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 10)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
-                # debug
-                logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2)))
+                # logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
