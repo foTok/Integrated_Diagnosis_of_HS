@@ -45,7 +45,7 @@ identifier = os.path.join(parentdir, 'ANN\\RO\\train\\{}.cnn'.format(ann))
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
-log_path = 'log\\RO'
+log_path = 'log\\RO\\{}'.format(ann)
 if not os.path.isdir(log_path):
     os.makedirs(log_path)
 logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)), level=logging.INFO)
@@ -56,7 +56,7 @@ for k in range(start, start+repeat):
         print(msg)
         logging.info(msg)
         # figure path
-        fig_path = 'log\\RO\\{}'.format(i)
+        fig_path = os.path.join(log_path, str(i))
         if not os.path.isdir(fig_path):
             os.makedirs(fig_path)
         # prepare evaluation environment.
