@@ -132,8 +132,11 @@ class hs_system_wrapper:
     def mode_names(self):
         return type(self.hs).modes
 
-    def mode_step(self, mode_i, state_i):
-        return self.hs.mode_step(mode_i, state_i)
+    def mode_step(self, mode_i, state_i, conf=None):
+        if conf is None:
+            return self.hs.mode_step(mode_i, state_i)
+        else:
+            return self.hs.mode_step(mode_i, state_i, conf)
 
     def state_step(self, mode_ip1, state_i, fault_parameters):
         return self.hs.state_step(mode_ip1, state_i, fault_parameters)
@@ -335,16 +338,7 @@ class hpf: # hybrid particle filter
     def step_particle(self, ptc, obs, ref_fault_paras):
         p = ptc.clone()
         # one step based on the particle
-        modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
-        # small trick, keep the mode unchanged with a small probability.
-        # The small trick is used to make sure that not all particles translate
-        # into new mode wrongly. If the transition occurs indeed, the posteriori
-        # probability will reduce the weights of unchanged particles, which will
-        # be ignored by resample. If the transition does not occur, the posteriori
-        # probabiity will reduce the weights of the translated partilces, which
-        # will be ignored by resample in turn.
-        if modes!=p.mode_values:
-            modes, states = (modes, states) if np.random.uniform()<0.9 else (p.mode_values, p.state_values)
+        modes, states = self.hsw.mode_step(p.mode_values, p.state_values, conf=0.25)
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
@@ -494,6 +488,8 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 10)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
+                # debug
+                logging.info('t={}, m={}, p={}'.format(self.t, probable_modes, round(ave_states[3], 2)))
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])

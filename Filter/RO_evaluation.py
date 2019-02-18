@@ -21,11 +21,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-a', '--ann', type=int, help='ann index')
+parser.add_argument('-n0', '--nmin', type=int, help='mimimal particle number')
+parser.add_argument('-n1', '--nmax', type=int, help='maximal particle number')
 args = parser.parse_args()
 
 start = 0 if args.start is None else args.start
 repeat = 10 if args.repeat is None else args.repeat
 ann = 'ro2' if args.ann==1 else 'ro'
+Nmin = 50 if args.nmin is None else args.nmin
+Nmax = 80 if args.nmax is None else args.nmax
 print('repeat experiments {} times, start from index {}.'.format(repeat, start))
 
 fd, fp = 1, 8
@@ -73,7 +77,7 @@ for k in range(start, start+repeat):
         tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                     observations=output_with_noise, limit=limit, \
                     fd=fd, fp=fp, proportion=proportion, \
-                    Nmin=150, Nmax=200)
+                    Nmin=Nmin, Nmax=Nmax)
         tracker.plot_states(file_name=os.path.join(fig_path, 'states{}'.format(k)))
         tracker.plot_modes(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
         tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))

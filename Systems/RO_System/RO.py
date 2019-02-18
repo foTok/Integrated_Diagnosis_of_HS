@@ -81,7 +81,46 @@ class RO:
             self.states.append(state_i)
             self.outputs.append(output_i)
 
-    def mode_step(self, mode_i, state_i): # important interface
+    def sample_mode_step(self, mode_i, state_i, conf):
+        h1 = 28.6770
+        h2 = 17.2930
+        h3 = 0.0670
+        h1_ = 28.5
+        h2_ = 17.5
+        h3_ = 1.3
+        mode_ip1 = mode_i
+        r = (np.random.uniform()<conf)
+        p = state_i[3]
+        if mode_i is None:
+            mode_ip1 = 0
+        elif mode_i == 0:
+            if p>h1:
+                mode_ip1 = 1
+            elif p>h1_ and r:
+                mode_ip1 = 1
+        elif mode_i == 1:
+            if p<h2:
+                mode_ip1 = 2
+            elif p<h2_ and r:
+                mode_ip1 = 2
+        elif mode_i == 2:
+            if p<h3:
+                mode_ip1 = 0
+                state_i = state_i[:]
+                state_i[4] = 0
+                state_i[5] = 0
+            elif p<h3_ and r:
+                mode_ip1 = 0
+                state_i = state_i[:]
+                state_i[4] = 0
+                state_i[5] = 0
+        else:
+            pass # keep the mode
+        return mode_ip1, state_i
+
+    def mode_step(self, mode_i, state_i, conf=None): # important interface
+        if conf is not None:
+            return self.sample_mode_step(mode_i, state_i, conf)
         h1 = 28.6770
         h2 = 17.2930
         h3 = 0.0670

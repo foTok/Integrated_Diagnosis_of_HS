@@ -7,6 +7,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
 import numpy as np
 import argparse
+import logging
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
@@ -41,21 +42,22 @@ if __name__ == '__main__':
     state_with_noise = data_mana.select_states(index, process_snr)
     output = data_mana.select_outputs(index)
     output_with_noise = data_mana.select_outputs(index, obs_snr)
+    modes = data_mana.select_modes(index)
 
     state_sigma = np.sqrt(obtain_var(state, process_snr))
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
 
     ro = RO(si)
     hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
+    logging.basicConfig(filename='log\\log.txt', level=logging.INFO)
     tracker = hpf(hsw)
     tracker.load_identifier(identifier)
     tracker.set_scale(state_scale, obs_scale)
-    tracker.set_log('log/ro.log')
     tracker.log_msg(msg)
     tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                   observations=output_with_noise, limit=limit, \
                   fd=fd, fp=fp, proportion=proportion, \
-                  Nmin=150, Nmax=200)
+                  Nmin=50, Nmax=50)
     tracker.plot_states(file_name='log/states')
     tracker.plot_modes(file_name='log/modes')
     tracker.plot_res(file_name='log/res')
