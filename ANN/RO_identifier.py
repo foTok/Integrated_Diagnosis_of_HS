@@ -1,5 +1,5 @@
 '''
-The identifier of RO systems.
+The identifier of RO systems. Compared with RO_identifier.py, the outputs are different.
 '''
 import os
 import sys
@@ -24,12 +24,13 @@ def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
     return data_mana
 
-def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro, mask):
+def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro, mask, output_names):
     r = data_mana.sample(size=batch, window=window, limit=limit, normal_proportion=0.2, \
                          snr_or_pro=snr_or_pro,\
                          norm_o=np.array([1,1,1,10e9,10e8]), \
                          norm_s=np.array([1,1,1,30,10e9,10e8]),\
-                         mask=mask)
+                         mask=mask,
+                         output_names=output_names)
     return r
 
 def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, mean_state_value_loss, mean_para_value_loss, \
@@ -52,7 +53,7 @@ def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, 
     else:
         print('#', end='', flush=True)
 
-def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask):
+def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask, output_names):
     train_loss = []
     running_loss = np.zeros(5)
     running_state_mean_loss = np.zeros(6)
@@ -60,7 +61,7 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
     for i in range(epoch):
         optimizer.zero_grad()
 
-        hs0, x, m, y, p = sample_data(data_mana, batch, window, limit, normal_proportion=0.2, snr_or_pro=obs_snr, mask=mask)
+        hs0, x, m, y, p = sample_data(data_mana, batch, window, limit, normal_proportion=0.2, snr_or_pro=obs_snr, mask=mask, output_names=output_names)
         modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)  = f_identifier((np2tensor(hs0), np2tensor(x)))
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
@@ -123,6 +124,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--ann', type=str, choices=['cnn', 'gru'], help='choose the cnn structure.')
     parser.add_argument('-d', '--data', type=str, help='choose the key values.')
+    parser.add_argument('-o', '--output', type=int, help='choose output names.')
     parser.add_argument('-s', '--start', type=int, help='start limit.')
     parser.add_argument('-e', '--end', type=int, help='end limit.')
     args = parser.parse_args()
@@ -130,13 +132,14 @@ if __name__ == "__main__":
 
     ann = args.ann
     data_set = args.data
+    output_names = ['q_fp', 'p_tr', 'p_memb', 'e_Cbrine', 'e_Ck'] if args.output==1 else None
 
     save_path =  os.path.join(this_path, 'RO\\{}'.format(data_set))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     mask = ['f_m']
     para_mask = [0, 0, 0]
-    model_name = 'ro.{}'.format(ann)
+    model_name = 'ro2.{}'.format(ann) if args.output==1 else 'ro.{}'.format(ann)
     epoch = 2000
     batch = 500
     # data manager
@@ -158,7 +161,7 @@ if __name__ == "__main__":
     # optimizer
     optimizer = optim.Adam(f_identifier.parameters(), lr=0.001, weight_decay=1e-2)
     # train
-    train_loss = train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask)
+    train_loss = train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask, output_names)
     # save model
     save_model(f_identifier, save_path, model_name)
     # figure

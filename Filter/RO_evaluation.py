@@ -20,10 +20,12 @@ from utilities.utilities import obtain_var
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
+parser.add_argument('-a', '--ann', type=int, help='ann index')
 args = parser.parse_args()
 
 start = 0 if args.start is None else args.start
 repeat = 10 if args.repeat is None else args.repeat
+ann = 'ro2' if args.ann==1 else 'ro'
 print('repeat experiments {} times, start from index {}.'.format(repeat, start))
 
 fd, fp = 1, 8
@@ -34,7 +36,7 @@ limit = (3, 2)
 proportion = 1.0
 state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10e9, 10e8])
-identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
+identifier = os.path.join(parentdir, 'ANN\\RO\\train\\{}.cnn'.format(ann))
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 
