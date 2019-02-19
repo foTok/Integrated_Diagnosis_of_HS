@@ -81,11 +81,12 @@ class RO:
             self.states.append(state_i)
             self.outputs.append(output_i)
 
-    def mode_step(self, mode_i, state_i, dia=False): # important interface
+    def mode_step(self, mode_i, state_i): # important interface
         h1 = 28.6770
         h2 = 17.2930
-        h3 = 0.0670 if not dia else 0.2
+        h3 = 0.0670
         mode_ip1 = mode_i
+        state_ip1 = state_i[:]
         p = state_i[3]
         if mode_i is None:
             mode_ip1 = 0
@@ -98,12 +99,10 @@ class RO:
         elif mode_i == 2:
             if p < h3:
                 mode_ip1 = 0
-                state_i = state_i[:]
-                state_i[4] = 0
-                state_i[5] = 0
+                state_ip1[4], state_ip1[5] = 0, 0
         else:
             pass # keep the mode
-        return mode_ip1, state_i
+        return mode_ip1, state_ip1
 
     def state_step(self, mode_ip1, state_i, fault_parameters): # important interface
         if (mode_ip1 % 3) == 0:

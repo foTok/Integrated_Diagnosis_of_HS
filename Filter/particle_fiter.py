@@ -132,11 +132,8 @@ class hs_system_wrapper:
     def mode_names(self):
         return type(self.hs).modes
 
-    def mode_step(self, mode_i, state_i, dia=None):
-        if dia is None:
-            return self.hs.mode_step(mode_i, state_i)
-        else:
-            return self.hs.mode_step(mode_i, state_i, dia)
+    def mode_step(self, mode_i, state_i):
+        return self.hs.mode_step(mode_i, state_i)
 
     def state_step(self, mode_ip1, state_i, fault_parameters):
         return self.hs.state_step(mode_ip1, state_i, fault_parameters)
@@ -338,7 +335,7 @@ class hpf: # hybrid particle filter
     def step_particle(self, ptc, obs, ref_fault_paras):
         p = ptc.clone()
         # one step based on the particle
-        modes, states = self.hsw.mode_step(p.mode_values, p.state_values, True)
+        modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
@@ -354,7 +351,7 @@ class hpf: # hybrid particle filter
         res = (obs - output)/self.hsw.obs_sigma # residual square
         Pobs = self.confidence(np.sum(res**2), len(res))
         # weighted res
-        res *= p.weight
+        res = p.weight*res
         p.set_weigth(p.weight*Pobs)
         p.set_fault_para(fault_paras)
         return p, res
@@ -489,7 +486,7 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
-                # logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
+                logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
