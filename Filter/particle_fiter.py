@@ -336,6 +336,9 @@ class hpf: # hybrid particle filter
         p = ptc.clone()
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
+        # small trick
+        if modes!=self.modes[-1]:
+            modes, states = (modes, states) if np.random.uniform()<0.1 else (self.modes[-1], p.state_values)
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
