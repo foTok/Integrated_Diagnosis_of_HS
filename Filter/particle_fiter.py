@@ -245,7 +245,7 @@ class hpf: # hybrid particle filter
         _, p_values = stats.f_oneway(paras1, paras2)
         where_are_nan = np.isnan(p_values)
         p_values[where_are_nan] = 1
-        if (p_values > p_thresh).all():
+        if (p_values > p_thresh).all() and not self.fd_is_closed(): # continue estimate if it is not stable or fd is closed.
             paras = np.array(self.tmp_fault_paras[-2*window_len:])
             paras = np.mean(paras, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
