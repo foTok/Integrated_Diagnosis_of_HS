@@ -30,7 +30,7 @@ if __name__ == '__main__':
     si = 0.01
     process_snr = 45
     obs_snr = 20
-    limit = (2, 3)
+    limit = (3, 2)
     proportion = 1.0
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
