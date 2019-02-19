@@ -82,9 +82,9 @@ class RO:
             self.outputs.append(output_i)
 
     def mode_step(self, mode_i, state_i, dia=False): # important interface
-        h1 = 28.6770 if not dia else 28.65
-        h2 = 17.2930 if not dia else 17.30
-        h3 = 0.0670 if not dia else 0.20
+        h1 = 28.6770
+        h2 = 17.2930
+        h3 = 0.0670 if not dia else 0.2
         mode_ip1 = mode_i
         p = state_i[3]
         if mode_i is None:
