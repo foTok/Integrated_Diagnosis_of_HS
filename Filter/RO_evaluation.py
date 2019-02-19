@@ -18,19 +18,21 @@ from utilities.utilities import obtain_var
 
 # get parameters from environment
 parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--conf', type=str, choices=['exp', 'chi2'], help='confidence')
+parser.add_argument('-o', '--output', type=str, help='output directory')
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
-parser.add_argument('-a', '--ann', type=int, help='ann index')
 parser.add_argument('-n0', '--nmin', type=int, help='mimimal particle number')
 parser.add_argument('-n1', '--nmax', type=int, help='maximal particle number')
+parser.add_argument('-f', '--from_i', type=int, help='from index')
+parser.add_argument('-t', '--to_i', type=int, help='to index')
 args = parser.parse_args()
 
 start = 0 if args.start is None else args.start
 repeat = 10 if args.repeat is None else args.repeat
-ann = 'ro2' if args.ann==1 else 'ro'
+conf = exp_confidence if args.conf=='exp' else chi2_confidence
 Nmin = 150 if args.nmin is None else args.nmin
 Nmax = 200 if args.nmax is None else args.nmax
-print('repeat experiments {} times, start from index {}.'.format(repeat, start))
 
 fd, fp = 1, 8
 si = 0.01
@@ -40,18 +42,20 @@ limit = (3, 2)
 proportion = 1.0
 state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10e9, 10e8])
-output_names = ['q_fp', 'p_tr', 'p_memb', 'e_Cbrine', 'e_Ck'] if args.ann==1 else None
-identifier = os.path.join(parentdir, 'ANN\\RO\\train\\{}.cnn'.format(ann))
+identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
+from_i = 0 if args.from_i is None else args.from_i
+to_i = len(data_mana.data) if args.to_i is None else (args.to_i+1)
+print('repeat experiments {} times, start label {}, from data {} to {}.'.format(repeat, start, from_i, to_i))
 
-log_path = 'log\\RO\\{}'.format(ann)
+log_path = 'log\\RO\\{}'.format(args.output)
 if not os.path.isdir(log_path):
     os.makedirs(log_path)
 logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)), level=logging.INFO)
 
 for k in range(start, start+repeat):
-    for i in range(len(data_mana.data)):
+    for i in range(from_i, to_i):
         msg = '\n************Track the {}th observation, {}th time.************'.format(i, k)
         print(msg)
         logging.info(msg)
@@ -63,17 +67,16 @@ for k in range(start, start+repeat):
         _, _, _, msg = data_mana.get_info(i, prt=False)
         ref_mode = data_mana.select_modes(i)
         ref_state = data_mana.select_states(i)
-        output = data_mana.select_outputs(i, output_names=output_names)
-        output_with_noise = data_mana.select_outputs(i, obs_snr, output_names=output_names)
+        output = data_mana.select_outputs(i)
+        output_with_noise = data_mana.select_outputs(i, obs_snr)
         state_sigma = np.sqrt(obtain_var(ref_state, process_snr))
         obs_sigma = np.sqrt(obtain_var(output, obs_snr))
         # create tracker and start tracking.
         ro = RO(si)
         hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
-        tracker = hpf(hsw)
+        tracker = hpf(hsw, conf=conf)
         tracker.load_identifier(identifier)
         tracker.set_scale(state_scale, obs_scale)
-        tracker.set_output_names(output_names)
         tracker.log_msg(msg)
         tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
                     observations=output_with_noise, limit=limit, \

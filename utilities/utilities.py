@@ -2,6 +2,23 @@ import numpy as np
 import torch
 from torch.distributions.normal import Normal
 
+def index(s, interval):
+    for i, t in zip(range(len(interval)-1), interval[1:]):
+        if s < t:
+            return i
+    return -1
+
+def dis_sample(dis, N=1): # discrete sample
+    interval = [0]
+    for p in dis:
+        interval.append(interval[-1]+p)
+    rand_num = np.random.uniform(interval[0], interval[-1], N)
+    samples = []
+    for r in rand_num:
+        i = index(r, interval)
+        samples.append(i)
+    return samples
+
 def add_noise(data, snr_pro_var=None):
     if snr_pro_var is None:
         return data

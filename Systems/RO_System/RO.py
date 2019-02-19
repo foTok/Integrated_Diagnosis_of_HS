@@ -8,6 +8,7 @@ sys.path.insert(0,rootdir)
 import numpy as np
 import matplotlib.pyplot as plt
 from utilities.utilities import add_noise
+from utilities.utilities import dis_sample
 
 class RO:
     # parameters

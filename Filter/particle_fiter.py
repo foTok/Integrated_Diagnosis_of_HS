@@ -20,6 +20,8 @@ from Fault_diagnosis.fault_detector import Z_test
 from utilities.utilities import np2tensor
 from utilities.utilities import smooth
 from utilities.utilities import dynamic_smooth
+from utilities.utilities import index
+from utilities.utilities import dis_sample
 
 def chi2_confidence(x, df):
     '''
@@ -37,28 +39,10 @@ def exp_confidence(x, df=None):
     return np.exp(-0.5*x)
 
 def normalize(particles):
-    w = 0
-    for ptc in particles:
-        w += ptc.weight
+    w = [ptc.weight for ptc in particles]
+    w = 0 if max(w)<0.01/len(particles) else sum(w)
     for ptc in particles:
         ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
-
-def index(s, interval):
-    for i, t in zip(range(len(interval)-1), interval[1:]):
-        if s < t:
-            return i
-    return -1
-
-def dis_sample(dis, N=1): # discrete sample
-    interval = [0]
-    for p in dis:
-        interval.append(interval[-1]+p)
-    rand_num = np.random.uniform(interval[0], interval[-1], N)
-    samples = []
-    for r in rand_num:
-        i = index(r, interval)
-        samples.append(i)
-    return samples
 
 def resample(particles, N=None):
     N = len(particles) if N is None else N
@@ -336,15 +320,6 @@ class hpf: # hybrid particle filter
         p = ptc.clone()
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
-        # small trick, keep the mode unchanged with a small probability.	
-        # The small trick is used to make sure that not all particles translate	
-        # into new mode wrongly. If the transition occurs indeed, the posteriori	
-        # probability will reduce the weights of unchanged particles, which will	
-        # be ignored by resample. If the transition does not occur, the posteriori	
-        # probabiity will reduce the weights of the translated partilces, which	
-        # will be ignored by resample in turn.
-        if modes!=p.mode_values:
-            modes, states = (modes, states) if np.random.uniform()<0.9 else (p.mode_values, p.state_values)
         # add noise to the particle
         fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
@@ -495,7 +470,8 @@ class hpf: # hybrid particle filter
                 self.Z.append(Z_test(self.res, 1000, 10))
                 dynamic_smooth(self.Z, 20)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
-                # logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
+                if __debug__:
+                    logging.info('t={}, m={}, p={}'.format(round(self.t, 2), probable_modes, round(ave_states[3], 2))) # debug
 
     def ave_states(self, ptcs):
         return sum([p.weight*p.state_values for p in ptcs])
