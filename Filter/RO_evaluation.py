@@ -47,7 +47,7 @@ data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 from_i = 0 if args.from_i is None else args.from_i
 to_i = len(data_mana.data) if args.to_i is None else (args.to_i+1)
-print('repeat experiments {} times, start label {}, from data {} to {}.'.format(repeat, start, from_i, to_i))
+print('repeat experiments {} times, start label {}, from data {} to {} (both included).'.format(repeat, start, from_i, to_i-1))
 
 log_path = 'log\\RO\\{}'.format(args.output)
 if not os.path.isdir(log_path):
