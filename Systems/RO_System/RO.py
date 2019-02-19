@@ -87,7 +87,7 @@ class RO:
         h3 = 0.0670
         h1_ = 28.5
         h2_ = 17.35
-        h3_ = 1.5
+        h3_ = 1.8
         mode_ip1 = mode_i
         r = (np.random.uniform()<conf)
         p = state_i[3]
