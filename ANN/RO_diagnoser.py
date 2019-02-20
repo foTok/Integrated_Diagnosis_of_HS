@@ -65,8 +65,9 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
     else:
         print('#', end='', flush=True)
 
-def train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mask, output_names):
+def train(save_path, model_name, epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mask, output_names):
     train_loss = []
+    min_loss = float('inf')
     running_loss = np.zeros(4)
 
     for i in range(epoch):
@@ -82,6 +83,9 @@ def train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mas
 
         train_loss.append(loss.item())
         show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss)
+
+        if loss.item() < min_loss:
+            save_model(diagnoser, save_path, model_name)
 
         loss.backward()
         optimizer.step()
@@ -142,8 +146,6 @@ if __name__ == "__main__":
     # optimizer
     optimizer = optim.Adam(diagnoser.parameters(), lr=0.001, weight_decay=1e-2)
     # train
-    train_loss = train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mask, output_names)
-    # save model
-    save_model(diagnoser, save_path, model_name)
+    train_loss = train(save_path, model_name, epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mask, output_names)
     # figure
     plot(train_loss, save_path, model_name)
