@@ -170,7 +170,7 @@ class data_manager:
         assert sum(limit) < window
         window = int(window/self.sample_int)
         limit = (int(limit[0]/self.sample_int), int(limit[1]/self.sample_int))
-        # mask lables
+        # mask labels
         the_labels = []
         for l in self.labels:
             if l not in mask:
@@ -223,6 +223,58 @@ class data_manager:
                 p.append(_p)
         hs0, x, m, y, p = np.array(hs0), np.array(x), np.array(m), np.array(y), np.array(p)
         return hs0, x, m, y, p
+
+    def sample_all(self, size, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[], output_names=None):
+        '''
+        size:
+            int, the number of sampled data.
+        window:
+            int, the lenght of each data point.
+        limit:
+            a tuple with two ints, (n1, n2).
+            n1 means we have to make sure there are at least n1 data come before the fault time.
+            n2 is similar.
+            n1+n2 < window
+        *******both window and limit are set as second**********
+        normal_proportion:
+            float between 0 and 1, the proportion of the normal mode
+        '''
+        # mask labels
+        the_labels = []
+        for l in self.labels:
+            if l not in mask:
+                the_labels.append(l)
+        label_size = len(the_labels) # if label_size is one, it must be normal
+        assert label_size >= 1
+        fault_size = 0 if label_size==1 else int(size*(1-normal_proportion)/(label_size-1))
+        normal_size = int(size - fault_size*(len(the_labels) - 1)) # make sure it is an int
+        x, m, y, p = [], [], [], []
+        for label in the_labels:
+            # 1. find all indexes with this label
+            indexes = []
+            for i, term in enumerate(self.cfg.terms):
+                l = 'normal' if term.fault_type is None else str(term.fault_type)
+                if l==label:
+                    indexes.append(i)
+            # 2. select one file randomly in iteration
+            iter_size = normal_size if label=='normal' else fault_size
+            for _ in range(iter_size):
+                i = indexes[random.randint(0, len(indexes)-1)]
+                term = self.cfg.terms[i]
+                outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o, output_names=output_names)
+                states_i = self.select_states(i, norm=norm_s)
+                modes_i = self.select_modes(i)
+                # fault parameters
+                _p = np.zeros(len(self.cfg.fault_para_names))
+                if term.fault_type in self.cfg.fault_para_names:
+                    _p[self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                # store them
+                x.append(outputs_i)
+                m.append(states_i)
+                y.append(modes_i)
+                p.append(_p)
+        x, m, y, p = np.array(x), np.array(m), np.array(y), np.array(p)
+        return x, m, y, p
 
     def np2target(self, y):
         '''
