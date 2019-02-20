@@ -12,12 +12,25 @@ import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.nn import MSELoss
+from torch.nn import NLLLoss
 from gru_diagnoser import gru_fault_diagnoser
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
-from utilities.utilities import one_mode_cross_entropy
-from utilities.utilities import normal_stochastic_loss
 from utilities.utilities import np2tensor
+
+def mse(input, target):
+    target = torch.tensor(target).float()
+    loss = MSELoss()
+    return loss(input, target)
+
+def cross_entropy(input, target):
+    batch,_,_ = input.size()
+    loss = NLLLoss()
+    ce = torch.tensor(0, dtype=torch.float)
+    input = torch.log(input)
+    for i, t in zip(input, target):
+        ce += loss(i, torch.tensor(t).long())/batch
+    return ce
 
 def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
@@ -40,13 +53,13 @@ def show_loss(i, loss, mode_loss, state_loss, para_loss, running_loss):
         msg = '# %d loss:%.3f=%.3f+%.3f+%.3f' \
               %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3])
         print(msg)
-        running_loss[:] = np.zeros(5)
+        running_loss[:] = 0
     else:
         print('#', end='', flush=True)
 
 def train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mask, output_names):
     train_loss = []
-    running_loss = np.zeros(5)
+    running_loss = np.zeros(4)
 
     for i in range(epoch):
         optimizer.zero_grad()
@@ -54,9 +67,9 @@ def train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mas
         x, m, y, p = sample_data(data_mana, batch, normal_proportion=0.2, snr_or_pro=obs_snr, mask=mask, output_names=output_names)
         mode, state, para = diagnoser(np2tensor(x))
 
-        mode_loss = one_mode_cross_entropy(mode, data_mana.np2target(m))
-        state_loss = MSELoss(state, np2tensor(y))
-        para_loss = one_mode_cross_entropy(para, data_mana.np2paratarget(p))
+        mode_loss = cross_entropy(mode, m)
+        state_loss = mse(state, y)
+        para_loss = mse(para, p)
         loss = mode_loss + state_loss + para_loss
 
         train_loss.append(loss.item())
