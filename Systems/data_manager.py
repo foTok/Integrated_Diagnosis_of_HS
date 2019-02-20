@@ -265,13 +265,14 @@ class data_manager:
                 states_i = self.select_states(i, norm=norm_s)
                 modes_i = self.select_modes(i)
                 # fault parameters
-                _p = np.zeros(len(self.cfg.fault_para_names))
+                _p = np.zeros((len(outputs_i), len(self.cfg.fault_para_names)))
                 if term.fault_type in self.cfg.fault_para_names:
-                    _p[self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                    fault_time = int(term.fault_time / self.sample_int)
+                    _p[fault_time:, self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
                 # store them
                 x.append(outputs_i)
-                m.append(states_i)
-                y.append(modes_i)
+                m.append(modes_i.reshape(-1))
+                y.append(states_i)
                 p.append(_p)
         x, m, y, p = np.array(x), np.array(m), np.array(y), np.array(p)
         return x, m, y, p
