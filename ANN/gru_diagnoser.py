@@ -51,7 +51,7 @@ class gru_fault_diagnoser(nn.Module):
         now, x: (batch, seq, feature). 
         '''
         batch, _, _ = x.size()
-        inner_h0 = torch.zeros(self.num_layers, batch, self.hidden_size)
+        inner_h0 = torch.zeros(self.num_layers, batch, self.hidden_size).cuda() if torch.cuda.is_available() else torch.zeros(self.num_layers, batch, self.hidden_size).cuda()
         # RNN/GRU
         hidden_states, _ = self.rnn(x, inner_h0) # the hidden states here is the outputs of GRU, not real hidden states.
         # Modes

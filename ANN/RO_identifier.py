@@ -33,31 +33,20 @@ def sample_data(data_mana, batch, window, limit, normal_proportion, snr_or_pro, 
                          output_names=output_names)
     return r
 
-def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, mean_state_value_loss, mean_para_value_loss, \
-              running_state_mean_loss, running_para_mean_loss, running_loss):
+def show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss):
     running_loss[:] += np.array([loss.item(), mode_loss.item(), para_loss.item(), state_value_loss.item(), para_value_loss.item()])
-    running_state_mean_loss[:] += mean_state_value_loss
-    running_para_mean_loss[:] += mean_para_value_loss
     if i%10==9:
         ave_loss = running_loss /  10
-        ave_state_loss = running_state_mean_loss / 10
-        ave_para_loss = running_para_mean_loss / 10
-        msg = '# %d loss:%.3f=%.3f+%.3f+%.3f(%.3f+%.3f+%.3f+%.3f+%.3f+%.3f)+%.3f(%.3f+%.3f+%.3f)' \
-              %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], \
-              ave_loss[3], ave_state_loss[0], ave_state_loss[1], ave_state_loss[2], ave_state_loss[3], ave_state_loss[4], ave_state_loss[5], \
-              ave_loss[4], ave_para_loss[0], ave_para_loss[1], ave_para_loss[2])
+        msg = '# %d loss:%.3f=%.3f+%.3f+%.3f+%.3f' \
+              %(i + 1, ave_loss[0], ave_loss[1], ave_loss[2], ave_loss[3], ave_loss[4])
         print(msg)
         running_loss[:] = np.zeros(5)
-        running_state_mean_loss[:] = np.zeros(6)
-        running_para_mean_loss[:] = np.zeros(3)
     else:
         print('#', end='', flush=True)
 
 def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_snr, mask, para_mask, output_names):
     train_loss = []
     running_loss = np.zeros(5)
-    running_state_mean_loss = np.zeros(6)
-    running_para_mean_loss = np.zeros(3)
     for i in range(epoch):
         optimizer.zero_grad()
 
@@ -66,13 +55,12 @@ def train(epoch, batch, window, limit, data_mana, f_identifier, optimizer, obs_s
         
         mode_loss = multi_mode_cross_entropy(modes, data_mana.np2target(m))
         para_loss = one_mode_cross_entropy(paras, data_mana.np2paratarget(p))
-        state_value_loss, mean_state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y), 10)
-        para_value_loss, mean_para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p), 10, para_mask)
+        state_value_loss = normal_stochastic_loss(states_mu, states_sigma, np2tensor(y), 10)
+        para_value_loss = normal_stochastic_loss(paras_mu, paras_sigma, np2tensor(p), 10, para_mask)
         loss = mode_loss + para_loss + state_value_loss + para_value_loss
 
         train_loss.append(loss.item())
-        show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, mean_state_value_loss, mean_para_value_loss, \
-                  running_state_mean_loss, running_para_mean_loss, running_loss)
+        show_loss(i, loss, mode_loss, para_loss, state_value_loss, para_value_loss, running_loss)
 
         loss.backward()
         optimizer.step()
@@ -92,7 +80,7 @@ def gru_model():
                     fc4_size=[128, 64, 32])
     return f_identifier
 
-def cnn_model(T, i=1):
+def cnn_model(T):
     f_identifier = cnn_fault_identifier(hs0_size=7,\
                     x_size=5,\
                     mode_size=[6],\
@@ -105,6 +93,8 @@ def cnn_model(T, i=1):
                     fc3_size=[128, 64, 32],
                     fc4_size=[128, 64, 32],
                     T=T)
+    if torch.cuda.is_available():
+        f_identifier.cuda()
     return f_identifier
 
 def save_model(model, path, name):

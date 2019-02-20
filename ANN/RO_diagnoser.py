@@ -19,14 +19,22 @@ from Systems.RO_System.RO import RO
 from utilities.utilities import np2tensor
 
 def mse(input, target):
-    target = torch.tensor(target).float()
+    '''
+    input: tensor, should be cuda is avaliable
+    target: np.array
+    '''
+    target = torch.tensor(target).float().cuda() if torch.cuda.is_available() else torch.tensor(target).float().cuda() 
     loss = MSELoss()
     return loss(input, target)
 
 def cross_entropy(input, target):
+    '''
+    input: tensor, should be cuda is avaliable
+    target: np.array
+    '''
     batch,_,_ = input.size()
     loss = NLLLoss()
-    ce = torch.tensor(0, dtype=torch.float)
+    ce = torch.tensor(0, dtype=torch.float).cuda() if torch.cuda.is_available() else torch.tensor(0, dtype=torch.float)
     input = torch.log(input)
     for i, t in zip(input, target):
         ce += loss(i, torch.tensor(t).long())/batch
@@ -89,7 +97,7 @@ def get_model():
                                     fc2_size=[128, 64, 32],\
                                     fc3_size=[128, 64, 32])
     if torch.cuda.is_available():
-        diagnoser = diagnoser.cuda()
+        diagnoser.cuda()
     return diagnoser
 
 def save_model(model, path, name):
