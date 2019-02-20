@@ -193,7 +193,7 @@ class hpf: # hybrid particle filter
 
     def load_identifier(self, file_name):
         if os.path.exists(file_name):
-            self.identifier = torch.load(file_name)
+            self.identifier = torch.load(file_name, map_location='cpu')
             self.identifier.eval()
         else:
             msg = 'warning: model file does not exist, it is not changed.'
