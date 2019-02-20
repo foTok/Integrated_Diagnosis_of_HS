@@ -106,7 +106,7 @@ if __name__ == "__main__":
     para_mask = [0, 0, 0]
     model_name = 'ro2.gru' if args.output==1 else 'ro.gru'
     epoch = 2000
-    batch = 500
+    batch = 20
     # data manager
     si = 0.01
     obs_snr = 20
