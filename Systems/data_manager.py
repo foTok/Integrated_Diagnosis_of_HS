@@ -288,6 +288,7 @@ class data_manager:
         for i, size in enumerate(mode_size):
             y_i = y[:, i]
             y_torch_i = torch.zeros((batch, size))
+            y_torch_i = y_torch_i.cuda() if torch.cuda.is_available() else y_torch_i
             for b in range(batch):
                 k = int(y_i[b])
                 y_torch_i[b, k] = 1
@@ -298,6 +299,7 @@ class data_manager:
         batch, num = y.shape
         base = np.arange(1, num+1)
         y_torch = torch.zeros((batch, num+1))
+        y_torch = y_torch.cuda() if torch.cuda.is_available() else y_torch
         for b in range(batch):
             para = y[b,:]
             i = np.sum((para!=0)*base)

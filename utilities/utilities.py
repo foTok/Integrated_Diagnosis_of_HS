@@ -123,7 +123,7 @@ def normal_stochastic_loss(mu, sigma, obs, k=1, mask=None):
     obs = obs.expand(k, batch, length)
     mean_loss = torch.mean((sample-obs)**2, [0, 1])
     sum_loss = torch.sum(mean_loss)
-    return sum_loss, mean_loss.detach().numpy()
+    return sum_loss
 
 def np2tensor(x):
     if torch.cuda.is_available():
