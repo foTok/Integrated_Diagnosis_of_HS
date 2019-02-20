@@ -54,7 +54,7 @@ def train(epoch, batch, data_mana, diagnoser, optimizer, obs_snr, mask, para_mas
         x, m, y, p = sample_data(data_mana, batch, normal_proportion=0.2, snr_or_pro=obs_snr, mask=mask, output_names=output_names)
         mode, state, para = diagnoser(np2tensor(x))
 
-        mode_loss = one_mode_cross_entropy(mode, data_mana.np2target(m))
+        mode_loss = one_mode_cross_entropy(mode, data_mana.np2target([m])[0])
         state_loss = MSELoss(state, np2tensor(y))
         para_loss = one_mode_cross_entropy(para, data_mana.np2paratarget(p))
         loss = mode_loss + state_loss + para_loss
