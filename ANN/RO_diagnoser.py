@@ -75,6 +75,8 @@ def get_model():
                                     fc1_size=[128, 64, 32],\
                                     fc2_size=[128, 64, 32],\
                                     fc3_size=[128, 64, 32])
+    if torch.cuda.is_available():
+        diagnoser = diagnoser.cuda()
     return diagnoser
 
 def save_model(model, path, name):

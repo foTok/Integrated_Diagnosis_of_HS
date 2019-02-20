@@ -84,7 +84,7 @@ def one_mode_cross_entropy(y_head, y, mask=None):
         y: batch × mode_size
     '''
     if mask is not None:
-        mask = torch.tensor(mask).float()
+        mask = torch.tensor(mask).float().cuda() if torch.cuda.is_available() else torch.tensor(mask).float()
         indices = (y!=mask).any(1)
         indices2 = (mask!=1)
         y_head = y_head[indices, :]
@@ -102,14 +102,15 @@ def multi_mode_cross_entropy(y_head, y, mask=None):
     '''
     if mask is None:
         mask = [None]*len(y_head)
-    ce = torch.tensor(0, dtype=torch.float)
+    ce = torch.tensor(0, dtype=torch.float).cuda() if torch.cuda.is_available() else torch.tensor(0, dtype=torch.float)
     for y1, y0, m in zip(y_head, y, mask):
+        y1 = y1.cuda() if torch.cuda.is_available() else y1
         ce += one_mode_cross_entropy(y1, y0, m)
     return ce
 
 def normal_stochastic_loss(mu, sigma, obs, k=1, mask=None):
     if mask is not None:
-        mask = torch.tensor(mask).float()
+        mask = torch.tensor(mask).float().cuda() if torch.cuda.is_available() else torch.tensor(mask).float()
         indices = (obs!=mask).any(1)
         mu = mu[indices]
         sigma = sigma[indices]
@@ -125,4 +126,7 @@ def normal_stochastic_loss(mu, sigma, obs, k=1, mask=None):
     return sum_loss, mean_loss.detach().numpy()
 
 def np2tensor(x):
-    return torch.tensor(x, dtype=torch.float)
+    if torch.cuda.is_available():
+        return torch.tensor(x, dtype=torch.float).cuda()
+    else:
+        return torch.tensor(x, dtype=torch.float)
