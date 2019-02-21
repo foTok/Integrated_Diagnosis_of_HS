@@ -197,10 +197,9 @@ class hpf: # hybrid particle filter
         self.paras = []
         self.Z = []
         self.t = 0 # time stamp
-        self.fault_t = None # fault time stamp
         self.fd_closed_flag = False # if fault detection is closed
         self.fp_open_flag = False # if fault parameter estimation is open
-        self.keep_dis_mode_t = None # the time length to keep discrete mode propotion.
+        self.keep_dis_mode_t = None # the left time length to keep discrete mode propotion.
         self.fd_window = None
         self.fp_window = None
         self.tmp_fault_paras = None
@@ -230,19 +229,14 @@ class hpf: # hybrid particle filter
     def close_fd(self):
         self.fd_closed_flag = True
         self.fault_t = self.t
-        self.keep_dis_mode_t = self.fd_window/2
         msg = 'Close fault detection at %.2fs.' % self.t
         self.log_msg(msg)
 
+    def keep_dis_mode(self):
+        self.keep_dis_mode_t = self.fd_window/4
+
     def dis_mode_is_kept(self):
-        if self.keep_dis_mode_t is None:
-            return False
-        else:
-            if self.t - self.fault_t > self.keep_dis_mode_t:
-                self.keep_dis_mode_t = None
-                return False
-            else:
-                return True
+        return self.keep_dis_mode_t is not None
 
     def check_fd(self):
         window = int(self.fd_window / self.hsw.step_len)
@@ -251,9 +245,14 @@ class hpf: # hybrid particle filter
             if (Z==0).all():
                 if self.fd_closed_flag:
                     self.fd_closed_flag = False
-                    self.fault_t = None
                     msg = 'Open fault detection at %.2fs.'% self.t
                     self.log_msg(msg)
+    
+    def check_dmk(self):
+        if self.keep_dis_mode_t is not None and self.keep_dis_mode_t<=0:
+            self.keep_dis_mode_t = None
+        else:
+            self.keep_dis_mode_t -= self.hsw.step_len
 
     def open_fp(self):
         self.fp_open_flag = True
@@ -381,6 +380,7 @@ class hpf: # hybrid particle filter
         '''
         self.t += self.hsw.step_len
         self.check_fd()
+        self.check_dmk()
         ref_fault_paras = self.estimate_fault_paras()
         particles_ip1 = []
         res = np.zeros(len(self.hsw.obs_sigma))
@@ -447,6 +447,7 @@ class hpf: # hybrid particle filter
             return None
         else:
             self.close_fd()
+            self.keep_dis_mode()
             self.open_fp()
             particles = []
             N = int((t0 + t1)/self.hsw.step_len)
