@@ -342,7 +342,7 @@ class hpf: # hybrid particle filter
 
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
-        fault_paras = np.zeros(len(mu))
+        fault_paras = self.default_para[:]
         if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
             if i!=0:
@@ -358,7 +358,8 @@ class hpf: # hybrid particle filter
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         # add noise to the particle
-        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else self.default_para
+        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() \
+                            else np.zeros(len(p.fault_paras))
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
         fault_paras = np.clip(fault_paras_base + fault_paras_noise, 0, 1)
         states = self.hsw.state_step(modes, states, fault_paras)
