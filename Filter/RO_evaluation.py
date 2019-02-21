@@ -34,8 +34,9 @@ repeat = 10 if args.repeat is None else args.repeat
 conf = exp_confidence if args.conf=='exp' else chi2_confidence
 Nmin = 150 if args.nmin is None else args.nmin
 Nmax = 200 if args.nmax is None else args.nmax
+fd = 1 if args.fd is None else args.fd
+fp = 8 if args.fp is None else args.fp
 
-fd, fp = 1, 8
 si = 0.01
 process_snr = 45
 obs_snr = 20
