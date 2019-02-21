@@ -249,10 +249,11 @@ class hpf: # hybrid particle filter
                     self.log_msg(msg)
     
     def check_dmk(self):
-        if self.keep_dis_mode_t is not None and self.keep_dis_mode_t<=0:
-            self.keep_dis_mode_t = None
-        else:
-            self.keep_dis_mode_t -= self.hsw.step_len
+        if self.keep_dis_mode_t is not None:
+            if self.keep_dis_mode_t<=0:
+                self.keep_dis_mode_t = None
+            else:
+                self.keep_dis_mode_t -= self.hsw.step_len
 
     def open_fp(self):
         self.fp_open_flag = True
