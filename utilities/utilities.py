@@ -125,8 +125,8 @@ def normal_stochastic_loss(mu, sigma, obs, k=1, mask=None):
     sum_loss = torch.sum(mean_loss)
     return sum_loss
 
-def np2tensor(x):
-    if torch.cuda.is_available():
+def np2tensor(x, use_cuda=True):
+    if torch.cuda.is_available() and use_cuda:
         return torch.tensor(x, dtype=torch.float).cuda()
     else:
         return torch.tensor(x, dtype=torch.float)

@@ -58,6 +58,26 @@ def resample(particles, N=None):
         new_partiles.append(ptc)
     return new_partiles
 
+def hybrid_resample(particles, N, keep_dis_mode=False):
+    if not keep_dis_mode:
+        return resample(particles, N)
+    N0 = len(particles)
+    particle_dict = {}
+    for p in particles:
+        key = tuple(p.mode_values)
+        if key in particle_dict:
+            particle_dict[key].append(p)
+        else:
+            particle_dict[key] = [p]
+    particle_list = []
+    for key in particle_dict:
+        particles_k = particle_dict[key]
+        n = int(N*len(particles_k)/N0)
+        particle_list += resample(particles_k, n)
+    for p in particle_list:
+        p.weight = 1/len(particle_list)
+    return particle_list
+
 class hybrid_particle:
     '''
     a hybrid particle contains both discrete modes and continuous states
@@ -177,8 +197,10 @@ class hpf: # hybrid particle filter
         self.paras = []
         self.Z = []
         self.t = 0 # time stamp
-        self.fd_closed_flag = False # if fault detection is closed.
-        self.fp_open_flag = False # if fault parameter estimation is open.
+        self.fault_t = None # fault time stamp
+        self.fd_closed_flag = False # if fault detection is closed
+        self.fp_open_flag = False # if fault parameter estimation is open
+        self.keep_dis_mode_t = None # the time length to keep discrete mode propotion.
         self.fd_window = None
         self.fp_window = None
         self.tmp_fault_paras = None
@@ -207,8 +229,20 @@ class hpf: # hybrid particle filter
 
     def close_fd(self):
         self.fd_closed_flag = True
+        self.fault_t = self.t
+        self.keep_dis_mode_t = self.fd_window/2
         msg = 'Close fault detection at %.2fs.' % self.t
         self.log_msg(msg)
+
+    def dis_mode_is_kept(self):
+        if self.keep_dis_mode_t is None:
+            return False
+        else:
+            if self.t - self.fault_t > self.keep_dis_mode_t:
+                self.keep_dis_mode_t = None
+                return False
+            else:
+                return True
 
     def check_fd(self):
         window = int(self.fd_window / self.hsw.step_len)
@@ -217,6 +251,7 @@ class hpf: # hybrid particle filter
             if (Z==0).all():
                 if self.fd_closed_flag:
                     self.fd_closed_flag = False
+                    self.fault_t = None
                     msg = 'Open fault detection at %.2fs.'% self.t
                     self.log_msg(msg)
 
@@ -354,7 +389,7 @@ class hpf: # hybrid particle filter
             particles_ip1.append(p)
             res += r
         normalize(particles_ip1)
-        re_particles_ip1 = resample(particles_ip1, self.N)
+        re_particles_ip1 = hybrid_resample(particles_ip1, self.N, self.dis_mode_is_kept())
         return re_particles_ip1, res
 
     def detect_fault(self, t1, proportion):
@@ -376,7 +411,7 @@ class hpf: # hybrid particle filter
         # x
         time, obs = x.shape
         x = x.reshape(1, time, obs)
-        modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identifier((np2tensor(hs0), np2tensor(x)))
+        modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma) = self.identifier((np2tensor(hs0, False), np2tensor(x, False)))
         modes = [m.detach().numpy() for m in modes]
         paras = paras.detach().numpy()
         states_mu, states_sigma = states_mu.detach().numpy(), states_sigma.detach().numpy()
