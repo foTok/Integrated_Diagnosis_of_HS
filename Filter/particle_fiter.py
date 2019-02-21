@@ -190,6 +190,7 @@ class hpf: # hybrid particle filter
         self.state_scale = np.ones(len(self.hsw.state_sigma))
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
         self.paras_sigma = np.zeros(len(self.hsw.para_faults()))
+        self.default_para = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.states = []
@@ -233,7 +234,7 @@ class hpf: # hybrid particle filter
         self.log_msg(msg)
 
     def keep_dis_mode(self):
-        self.keep_dis_mode_t = self.fd_window/4
+        self.keep_dis_mode_t = self.fd_window/5
 
     def dis_mode_is_kept(self):
         return self.keep_dis_mode_t is not None
@@ -287,6 +288,7 @@ class hpf: # hybrid particle filter
             self.fp_open_flag = False
             self.tmp_fault_paras = None
             self.N = self.Nmin
+            self.default_para = paras
             msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
             self.log_msg(msg)
         else:
@@ -356,7 +358,7 @@ class hpf: # hybrid particle filter
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         # add noise to the particle
-        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else np.zeros(len(p.fault_paras))
+        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() else self.default_para
         fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
         fault_paras = np.clip(fault_paras_base + fault_paras_noise, 0, 1)
         states = self.hsw.state_step(modes, states, fault_paras)

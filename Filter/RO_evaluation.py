@@ -19,13 +19,12 @@ from utilities.utilities import obtain_var
 # get parameters from environment
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--conf', type=str, choices=['exp', 'chi2'], help='confidence')
+parser.add_argument('-t', '--test', type=str, help='test set name')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n0', '--nmin', type=int, help='mimimal particle number')
 parser.add_argument('-n1', '--nmax', type=int, help='maximal particle number')
-parser.add_argument('-f', '--from_i', type=int, help='from index')
-parser.add_argument('-t', '--to_i', type=int, help='to index')
 args = parser.parse_args()
 
 start = 0 if args.start is None else args.start
@@ -43,11 +42,9 @@ proportion = 1.0
 state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10e9, 10e8])
 identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
-data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
+data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(args.test))
 data_mana = data_manager(data_cfg, si)
-from_i = 0 if args.from_i is None else args.from_i
-to_i = len(data_mana.data) if args.to_i is None else (args.to_i+1)
-print('repeat experiments {} times, start label {}, from data {} to {} (both included).'.format(repeat, start, from_i, to_i-1))
+print('repeat experiments {} times, start label {}.'.format(repeat, start))
 
 log_path = 'log\\RO\\{}'.format(args.output)
 if not os.path.isdir(log_path):
@@ -55,7 +52,7 @@ if not os.path.isdir(log_path):
 logging.basicConfig(filename=os.path.join(log_path, 'log_s{}_r{}.txt'.format(start, repeat)), level=logging.INFO)
 
 for k in range(start, start+repeat):
-    for i in range(from_i, to_i):
+    for i in range(len(data_mana.data)):
         msg = '\n************Track the {}th observation, {}th time.************'.format(i, k)
         print(msg)
         logging.info(msg)

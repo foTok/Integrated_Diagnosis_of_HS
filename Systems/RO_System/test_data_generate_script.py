@@ -7,6 +7,7 @@ rootdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 sys.path.insert(0,rootdir)
 import numpy as np
 import progressbar
+import argparse
 from RO import RO
 from numpy.random import uniform
 from Systems.data_manager import cfg
@@ -18,53 +19,73 @@ def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01,
     np.save(file_name, data)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--fault_type", type=str, choices=['norm', 'dis', 'cont'], help="set fault type.")
+    parser.add_argument("-o", "--output", type=str, help="output directory.")
+    args = parser.parse_args()
+    out_dir = args.output
+    assert out_dir is not None
     this_path = os.path.dirname(os.path.abspath(__file__))
+    out_dir = os.path.join(this_path, out_dir)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
     fault_time_list = {'s_normal': [round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
-                       's_pressure':[round(uniform(100, 110), 2),  round(uniform(160, 165), 2)], \
-                       's_reverse':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2)], \
-                       'f_f':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
-                       'f_r':[round(uniform(100, 110), 2),  round(uniform(130, 135), 2)]}
-    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
+                       's_pressure':[round(uniform(105, 110), 2),  round(uniform(160, 165), 2)], \
+                       's_reverse':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2)], \
+                       'f_f':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
+                       'f_r':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2)]}
+    dis_fault = ['s_normal', 's_pressure', 's_reverse']
+    cont_fault = ['f_f', 'f_r']
     fault_magnitude_list = [0.16, 0.26, 0.36]
-    file_num = 1
-    for f in fault_type_list:
-        if f.startswith('s'):
+
+    if args.fault_type=='norm':
+        file_num = 1
+    elif args.fault_type=='dis':
+        file_num = 0
+        for f in dis_fault:
             file_num += len(fault_time_list[f])
-        else:
+    elif args.fault_type=='cont':
+        file_num = 0
+        for f in cont_fault:
             file_num += len(fault_time_list[f])*len(fault_magnitude_list)
-    i = 0 # file index
+    else:
+        raise RuntimeError('Unknow fault type.')
     sample_int = 0.01
-    progressbar.streams.wrap_stderr()
     readme = []
-    with progressbar.ProgressBar(max_value=100) as bar:
+
+    if args.fault_type=='norm':
         # normal
-        file_name = os.path.join(this_path, 'data\\test\\{}'.format(i))
-        cfg_name = os.path.join(this_path, 'data\\test\\RO.cfg')
-        i += 1
-        bar.update(min(float('%.2f'%(i*100/file_num)), 100))
-        path = os.path.dirname(file_name)
-        if not os.path.isdir(path):
-            os.makedirs(path)
+        file_name = os.path.join(out_dir, '0')
+        cfg_name = os.path.join(out_dir, 'RO.cfg')
         the_cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.f_parameters, RO.labels, sample_int)
         the_cfg.add_term(term(file_name))
         ro = RO(sample_int)
+        msg = 'file 0, normal.'
+        readme.append(msg)
         simulate(file_name, ro, sample_int=sample_int)
-        # fault
-        for fault_type in fault_type_list:
-            for fault_time in fault_time_list[fault_type]:
-                _fault_magnitude_list = [None] if fault_type.startswith('s') else fault_magnitude_list
-                for fault_magnitude in _fault_magnitude_list:
-                    file_name = os.path.join(this_path, 'data\\test\\{}'.format(i))
-                    msg = 'file: {}, fault_type: {}, fault_time: {}, fault_managnitude: {}.\n'.format(i, fault_type, fault_time, fault_magnitude)
-                    readme.append(msg)
-                    i += 1
-                    bar.update(min(float('%.2f'%(i*100/file_num)), 100))
-                    ro = RO(sample_int)
-                    the_term = term(file_name, fault_type=fault_type, fault_time=fault_time, fault_magnitude=fault_magnitude)
-                    the_cfg.add_term(the_term)
-                    simulate(file_name, ro, sample_int=sample_int, fault_type=fault_type, fault_time=fault_time, fault_magnitude=fault_magnitude)
-        bar.update(100)
-        progressbar.streams.flush()
+    else:
+        i = -1 # file index
+        fault_type_list = dis_fault if args.fault_type=='dis' else cont_fault
+        fault_magnitude_list = [None] if args.fault_type=='dis' else fault_magnitude_list
+        cfg_name = os.path.join(out_dir, 'RO.cfg')
+        the_cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.f_parameters, RO.labels, sample_int)
+        with progressbar.ProgressBar(max_value=100) as bar:
+            for fault_type in fault_type_list:
+                for fault_time in fault_time_list[fault_type]:
+                    for fault_magnitude in fault_magnitude_list:
+                        i += 1
+                        file_name = os.path.join(out_dir, str(i))
+                        msg = 'file: {}, fault_type: {}, fault_time: {}, fault_managnitude: {}.\n'.format(i, fault_type, fault_time, fault_magnitude)
+                        readme.append(msg)
+                        bar.update(min(float('%.2f'%(i*100/file_num)), 100))
+
+                        ro = RO(sample_int)
+                        the_term = term(file_name, fault_type=fault_type, fault_time=fault_time, fault_magnitude=fault_magnitude)
+                        the_cfg.add_term(the_term)
+                        simulate(file_name, ro, sample_int=sample_int, fault_type=fault_type, fault_time=fault_time, fault_magnitude=fault_magnitude)
+            bar.update(100)
+            progressbar.streams.flush()
     the_cfg.save(cfg_name)
-    with open(os.path.join(this_path, 'data\\test\\readme.txt'), 'w') as f:
+    with open(os.path.join(out_dir, 'readme.txt'), 'w') as f:
         f.writelines(readme)
