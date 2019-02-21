@@ -64,7 +64,7 @@ def hybrid_resample(particles, N, keep_dis_mode=False):
     N0 = len(particles)
     particle_dict = {}
     for p in particles:
-        key = tuple(p.mode_values)
+        key = p.mode_values if isinstance(p.mode_values, int) else tuple(p.mode_values)
         if key in particle_dict:
             particle_dict[key].append(p)
         else:
