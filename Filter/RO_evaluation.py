@@ -25,6 +25,8 @@ parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n0', '--nmin', type=int, help='mimimal particle number')
 parser.add_argument('-n1', '--nmax', type=int, help='maximal particle number')
+parser.add_argument('-fd', '--fd', type=int, help='fault detection close window')
+parser.add_argument('-fp', '--fp', type=int, help='fault parameter estimation window')
 args = parser.parse_args()
 
 start = 0 if args.start is None else args.start

@@ -228,9 +228,6 @@ class hpf: # hybrid particle filter
             msg = 'warning: model file does not exist, it is not changed.'
             self.log_msg(msg)
 
-    def fd_is_closed(self):
-        return self.fd_closed_flag
-
     def close_fd(self):
         self.fd_closed_flag = True
         self.fault_t = self.t
@@ -284,7 +281,7 @@ class hpf: # hybrid particle filter
         _, p_values = stats.f_oneway(paras1, paras2)
         where_are_nan = np.isnan(p_values)
         p_values[where_are_nan] = 1
-        if (p_values > p_thresh).all() and not self.fd_is_closed(): # continue estimate if it is not stable or fd is closed.
+        if (p_values > p_thresh).all():
             paras = np.array(self.tmp_fault_paras[-2*window_len:])
             paras = np.mean(paras, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
@@ -445,7 +442,7 @@ class hpf: # hybrid particle filter
     def fault_process(self, t0, t1, proportion):
         if self.identifier is None:
             return None
-        if self.fd_is_closed():
+        if self.fd_closed_flag:
             return None
         has_fault = self.detect_fault(t1, proportion)
         if not has_fault:
