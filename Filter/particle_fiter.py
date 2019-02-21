@@ -54,7 +54,7 @@ def resample(particles, N=None):
     for s in samples:
         i = index(s, interval)
         ptc = particles[i].clone()
-        ptc.weight = 1/N
+        ptc.set_weigth(1/N)
         new_partiles.append(ptc)
     return new_partiles
 
@@ -75,17 +75,18 @@ def hybrid_resample(particles, N, keep_dis_mode=False):
         n = int(N*len(particles_k)/N0)
         particle_list += resample(particles_k, n)
     for p in particle_list:
-        p.weight = 1/len(particle_list)
+        p.set_weigth(1/len(particle_list))
     return particle_list
 
 class hybrid_particle:
     '''
     a hybrid particle contains both discrete modes and continuous states
     '''
-    def __init__(self, mode_values, state_values, fault_paras, weight=1):
+    def __init__(self, mode_values, state_values, fault_paras, fault_paras_sigma=None, weight=1):
         self.mode_values = mode_values      # int or list or np.array, may change
-        self.state_values = state_values    # list or np.array, may change
-        self.fault_paras = fault_paras      # list or np.array, fault parameters, may change
+        self.state_values = state_values    # np.array, may change
+        self.fault_paras = fault_paras      # np.array, fault parameters, may change
+        self.fault_paras_sigma = fault_paras_sigma if fault_paras_sigma is not None else np.zeros(len(fault_paras))
         self.weight = weight                # real, may change
 
     def set_hs(self, mode_values, state_values):
@@ -113,10 +114,19 @@ class hybrid_particle:
     def set_weigth(self, weight):
         self.weight = weight
 
+    def set_fault_para_sigma(self, fault_paras_sigma):
+        self.fault_paras_sigma = fault_paras_sigma
+
+    def reset_fault_para(self, fault_paras):
+        if fault_paras is not None:
+            self.fault_paras = fault_paras
+            self.fault_paras_sigma = np.zeros(len(fault_paras))
+
     def clone(self):
         pct = hybrid_particle(self.mode_values,\
-                              self.state_values.copy(),\
-                              self.fault_paras.copy(),\
+                              self.state_values,\
+                              self.fault_paras,\
+                              self.fault_paras_sigma,\
                               self.weight)
         return pct
 
@@ -189,8 +199,6 @@ class hpf: # hybrid particle filter
         self.identifier = None
         self.state_scale = np.ones(len(self.hsw.state_sigma))
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
-        self.paras_sigma = np.zeros(len(self.hsw.para_faults()))
-        self.default_para = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.states = []
@@ -199,7 +207,6 @@ class hpf: # hybrid particle filter
         self.Z = []
         self.t = 0 # time stamp
         self.fd_closed_flag = False # if fault detection is closed
-        self.fp_open_flag = False # if fault parameter estimation is open
         self.keep_dis_mode_t = None # the left time length to keep discrete mode propotion.
         self.fd_window = None
         self.fp_window = None
@@ -224,9 +231,6 @@ class hpf: # hybrid particle filter
     def fd_is_closed(self):
         return self.fd_closed_flag
 
-    def fp_is_open(self):
-        return self.fp_open_flag
-
     def close_fd(self):
         self.fd_closed_flag = True
         self.fault_t = self.t
@@ -234,7 +238,7 @@ class hpf: # hybrid particle filter
         self.log_msg(msg)
 
     def keep_dis_mode(self):
-        self.keep_dis_mode_t = self.fd_window/5
+        self.keep_dis_mode_t = self.fd_window/2
 
     def dis_mode_is_kept(self):
         return self.keep_dis_mode_t is not None
@@ -257,7 +261,6 @@ class hpf: # hybrid particle filter
                 self.keep_dis_mode_t -= self.hsw.step_len
 
     def open_fp(self):
-        self.fp_open_flag = True
         self.N = self.Nmax
         self.tmp_fault_paras = []
         msg = 'Open fault parameter estimation at %.2fs.' % self.t
@@ -285,10 +288,8 @@ class hpf: # hybrid particle filter
             paras = np.array(self.tmp_fault_paras[-2*window_len:])
             paras = np.mean(paras, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
-            self.fp_open_flag = False
             self.tmp_fault_paras = None
             self.N = self.Nmin
-            self.default_para = paras
             msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
             self.log_msg(msg)
         else:
@@ -305,17 +306,18 @@ class hpf: # hybrid particle filter
             ptc = hybrid_particle(modes,\
                                   states,\
                                   fault_paras,\
-                                  1/N)
+                                  weight=1/N)
             particles.append(ptc)
         return particles
 
     def sample_particle_from_ann(self, modes, paras, state_values, para_values, weight):
         modes, has_fault = self.sample_modes(modes)
         states = self.sample_states(state_values)
-        paras = self.sample_paras(paras, para_values, has_fault)
+        paras, sigma = self.sample_paras(paras, para_values, has_fault)
         ptc = hybrid_particle(modes,\
                               states,\
                               paras,\
+                              sigma,\
                               weight)
         return ptc
 
@@ -342,7 +344,7 @@ class hpf: # hybrid particle filter
 
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
-        fault_paras = self.default_para[:]
+        fault_paras = np.zeros(len(mu))
         if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
             if i!=0:
@@ -351,17 +353,17 @@ class hpf: # hybrid particle filter
                 fp = rd*sigma[i] + mu[i]
                 fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
                 fault_paras[i] = fp
-        return fault_paras
+        return fault_paras, sigma
 
     def step_particle(self, ptc, obs, ref_fault_paras):
         p = ptc.clone()
+        # try if reset particle fault parameters
+        p.reset_fault_para(ref_fault_paras)
         # one step based on the particle
         modes, states = self.hsw.mode_step(p.mode_values, p.state_values)
         # add noise to the particle
-        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*self.paras_sigma if self.fp_is_open() \
-                            else np.zeros(len(p.fault_paras))
-        fault_paras_base = p.fault_paras if ref_fault_paras is None else ref_fault_paras
-        fault_paras = np.clip(fault_paras_base + fault_paras_noise, 0, 1)
+        fault_paras_noise = (p.fault_paras!=0)*np.random.standard_normal(len(p.fault_paras))*p.fault_paras_sigma
+        fault_paras = np.clip(p.fault_paras + fault_paras_noise, 0, 1)
         states = self.hsw.state_step(modes, states, fault_paras)
         # add process noise
         process_noise = np.random.standard_normal(len(states))*self.hsw.state_sigma
@@ -425,7 +427,6 @@ class hpf: # hybrid particle filter
         paras = paras[0,:]
         states_mu, states_sigma = states_mu[0,:]+1e-8, states_sigma[0,:]+1e-8 # avoid numeric problems
         paras_mu, paras_sigma = paras_mu[0,:]+1e-8, paras_sigma[0,:]+1e-8 # avoid numeric problems
-        self.paras_sigma = paras_sigma
         return modes, paras, (states_mu, states_sigma), (paras_mu, paras_sigma)
 
     def hs0(self, N):
