@@ -292,7 +292,8 @@ class hpf: # hybrid particle filter
             self.N = self.Nmin
             self.default_para = paras
             self.default_para_sigma = paras_sigma
-            msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
+            msg = 'Close fault parameter estimation at {}s, mu={}, sigma={}.'\
+                  .format(round(self.t, 2), np.round(paras, 4), np.round(paras_sigma, 4))
             self.log_msg(msg)
         else:
             paras = None
