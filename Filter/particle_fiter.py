@@ -346,10 +346,7 @@ class hpf: # hybrid particle filter
             i = dis_sample(paras)[0]
             if i!=0:
                 i += -1
-                rd = np.random.randn()
-                fp = rd*sigma[i] + mu[i]
-                fp = np.clip(fp, 0, 1) # make sure fp belongs to [0, 1]
-                fault_paras[i] = fp
+                fault_paras[i] = mu
         return fault_paras, sigma
 
     def step_particle(self, ptc, obs, ref_fault_paras):
