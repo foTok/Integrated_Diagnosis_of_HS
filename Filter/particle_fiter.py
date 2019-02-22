@@ -199,6 +199,7 @@ class hpf: # hybrid particle filter
         self.identifier = None
         self.state_scale = np.ones(len(self.hsw.state_sigma))
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
+        self.default_para = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.states = []
@@ -341,13 +342,16 @@ class hpf: # hybrid particle filter
 
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
-        fault_paras = np.zeros(len(mu))
+        fault_paras = self.default_para
+        fault_sigma = np.zeros(len(fault_paras))
         if not has_fault: # no discrete mode fault.
             i = dis_sample(paras)[0]
             if i!=0:
                 i += -1
+                fault_paras = np.zeros(len(mu))
                 fault_paras[i] = mu
-        return fault_paras, sigma
+                fault_sigma = sigma
+        return fault_paras, fault_sigma
 
     def step_particle(self, ptc, obs, ref_fault_paras):
         p = ptc.clone()
