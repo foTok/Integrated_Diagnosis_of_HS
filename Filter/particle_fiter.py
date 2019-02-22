@@ -260,11 +260,10 @@ class hpf: # hybrid particle filter
                 self.keep_dis_mode_t -= self.hsw.step_len
 
     def open_fp(self):
-        if (self.default_para==0).all():
-            self.N = self.Nmax
-            self.tmp_fault_paras = []
-            msg = 'Open fault parameter estimation at %.2fs.' % self.t
-            self.log_msg(msg)
+        self.N = self.Nmax
+        self.tmp_fault_paras = []
+        msg = 'Open fault parameter estimation at %.2fs.' % self.t
+        self.log_msg(msg)
 
     def collect_fault_paras(self, fault_paras):
         if self.tmp_fault_paras is not None:
