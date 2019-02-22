@@ -344,7 +344,7 @@ class hpf: # hybrid particle filter
         mu, sigma = para_values
         fault_paras = self.default_para
         fault_sigma = np.zeros(len(fault_paras))
-        if not has_fault: # no discrete mode fault.
+        if (self.default_para==0).all() and not has_fault:
             i = dis_sample(paras)[0]
             if i!=0:
                 i += -1
