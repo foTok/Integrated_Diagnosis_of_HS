@@ -284,10 +284,10 @@ class hpf: # hybrid particle filter
         where_are_nan = np.isnan(p_values)
         p_values[where_are_nan] = 1
         if (p_values > p_thresh).all():
-            paras = np.array(self.tmp_fault_paras[-2*window_len:])
-            paras = np.mean(paras, 0)
+            paras_2w = np.array(self.tmp_fault_paras[-2*window_len:])
+            paras = np.mean(paras_2w, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
-            paras_sigma = np.std(paras, 0)*(paras!=0)/np.sqrt(2*window_len)
+            paras_sigma = np.std(paras_2w, 0)*(paras!=0)/np.sqrt(2*window_len)
             self.tmp_fault_paras = None
             self.N = self.Nmin
             self.default_para = paras
