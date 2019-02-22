@@ -288,6 +288,7 @@ class hpf: # hybrid particle filter
             paras = np.array([(p if p>0.01 else 0) for p in paras])
             self.tmp_fault_paras = None
             self.N = self.Nmin
+            self.default_para = paras
             msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
             self.log_msg(msg)
         else:
