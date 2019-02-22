@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--conf', type=str, choices=['exp', 'chi2'], help='confidence')
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
+    parser.add_argument('-t', '--test', type=str, help='test_set')
     parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
     parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window')
     args = parser.parse_args()
@@ -34,8 +35,9 @@ if __name__ == '__main__':
     proportion = 1.0
     state_scale =np.array([1,1,1,30,10e9,10e8])
     obs_scale =np.array([1,1,1,10e9,10e8])
+    test = 'test' if args.test is None else args.test
     identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test_d\\RO.cfg')
+    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(test))
     data_mana = data_manager(data_cfg, si)
     msg = data_mana.get_info(index, prt=False)
     state = data_mana.select_states(index)
