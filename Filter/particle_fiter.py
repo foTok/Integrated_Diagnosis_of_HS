@@ -200,6 +200,7 @@ class hpf: # hybrid particle filter
         self.state_scale = np.ones(len(self.hsw.state_sigma))
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
         self.default_para = np.zeros(len(self.hsw.para_faults()))
+        self.default_para_sigma = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.states = []
@@ -287,9 +288,11 @@ class hpf: # hybrid particle filter
             paras = np.array(self.tmp_fault_paras[-2*window_len:])
             paras = np.mean(paras, 0)
             paras = np.array([(p if p>0.01 else 0) for p in paras])
+            paras_sigma = np.std(paras, 0)*(paras!=0)/np.sqrt(2*window_len)
             self.tmp_fault_paras = None
             self.N = self.Nmin
             self.default_para = paras
+            self.default_para_sigma = paras_sigma
             msg = 'Close fault parameter estimation at {}s, the estimated values are {}'.format(round(self.t, 2), np.round(paras, 4))
             self.log_msg(msg)
         else:
@@ -345,7 +348,7 @@ class hpf: # hybrid particle filter
     def sample_paras(self, paras, para_values, has_fault):
         mu, sigma = para_values
         fault_paras = self.default_para
-        fault_sigma = np.zeros(len(fault_paras))
+        fault_sigma = self.default_para_sigma
         if (self.default_para==0).all() and not has_fault:
             i = dis_sample(paras)[0]
             if i!=0:
