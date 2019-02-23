@@ -16,9 +16,8 @@ from torch.nn import CrossEntropyLoss
 from gru_diagnoser import gru_mode_detector
 from gru_diagnoser import gru_para_fault_isolator
 from gru_diagnoser import gru_para_fault_identifier
-from Systems.data_manager import data_manager
-from Systems.RO_System.RO import RO
-from utilities.utilities import np2tensor
+from data_manager import data_manager
+from utilities import np2tensor
 
 def mse(input, target, use_cuda=True):
     '''
@@ -138,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, help='choose output names.')
     args = parser.parse_args()
 
-    use_cuda = False
+    use_cuda = True
 
     data_set = args.data
     # mask
@@ -162,7 +161,7 @@ if __name__ == "__main__":
         raise RuntimeError('Unknown Type.')
     model_name = args.output
 
-    save_path =  os.path.join(this_path, 'model\\{}'.format(data_set))
+    save_path =  os.path.join(this_path, 'model/{}'.format(data_set))
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     
@@ -171,7 +170,7 @@ if __name__ == "__main__":
     # data manager
     si = 0.01
     obs_snr = 5
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(data_set))
+    data_cfg = '{}/RO.cfg'.format(data_set)
     if not os.path.exists(data_cfg):
         raise RuntimeError('Data set does not exist.')
     data_mana = new_data_manager(data_cfg, si)

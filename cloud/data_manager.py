@@ -8,7 +8,7 @@ import torch
 import random
 import progressbar
 import numpy as np
-from utilities.utilities import add_noise
+from utilities import add_noise
 
 class term:
     def __init__(self, file_name, fault_type=None, fault_time=None, fault_magnitude=None):

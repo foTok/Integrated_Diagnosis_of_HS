@@ -65,7 +65,7 @@ class gru_fault_identifier(nn.Module):
         # FC3 module, which converts the inner states into system parameter faults
         fc3_maps = [hidden_size]+ fc3_size + [para_size+1] # no para fault + para fault size
         self.fc3 = nn.ModuleList([nn.Linear(fc3_maps[i], fc3_maps[i+1]) for i in range(len(fc3_maps)-1)])
-        self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc1_maps)-2)])
+        self.ac3 = nn.ModuleList([nn.PReLU() for _ in range(len(fc3_maps)-2)])
         self.sm3 = nn.Softmax(dim=2)
         # FC4 module, which converts the inner states into system parameters.
         fc4_maps = [hidden_size]+ fc4_size + [para_size]
