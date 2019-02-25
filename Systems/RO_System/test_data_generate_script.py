@@ -14,7 +14,7 @@ from Systems.data_manager import cfg
 from Systems.data_manager import term
 
 def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01, fault_type=None, fault_time=None, fault_magnitude=None):
-    model.run(init_state, t, fault_type, fault_time, fault_magnitude)
+    model.run(0, init_state, t, fault_type, fault_time, fault_magnitude)
     data = model.np_data()
     np.save(file_name, data)
 
@@ -30,11 +30,11 @@ if __name__ == "__main__":
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    fault_time_list = {'s_normal': [round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
-                       's_pressure':[round(uniform(105, 110), 2),  round(uniform(160, 165), 2)], \
-                       's_reverse':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2)], \
-                       'f_f':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2),  round(uniform(160, 165), 2)], \
-                       'f_r':[round(uniform(105, 110), 2),  round(uniform(130, 135), 2)]}
+    fault_time_list = {'s_normal': [round(uniform(140, 145), 2),  round(uniform(170, 175), 2)], \
+                       's_pressure':[round(uniform(110, 115), 2),  round(uniform(170, 175), 2)], \
+                       's_reverse':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)], \
+                       'f_f':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2),  round(uniform(170, 175), 2)], \
+                       'f_r':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)]}
     dis_fault = ['s_normal', 's_pressure', 's_reverse']
     cont_fault = ['f_f', 'f_r']
     fault_magnitude_list = [0.16, 0.26, 0.36]

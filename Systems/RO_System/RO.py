@@ -45,6 +45,8 @@ class RO:
         self.states = []
         self.outputs = []
         self.state_disturb = None
+        self.t = 0
+        self.s_t = 0
 
     def set_state_disturb(self, disturb): # important interface
         self.state_disturb = disturb
@@ -67,14 +69,12 @@ class RO:
         else:
             raise RuntimeError('Unknown Fault.')
 
-    def run(self, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
-        i = 1
-        mode_i = None
+    def run(self, init_mode=0, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
+        mode_i = init_mode
         state_i = init_state
-        while i*self.step_len <= t:
-            i += 1
-            # if insert fault
-            mode_i, para_fault = self.fault_parameters(i*self.step_len, mode_i, fault_type, fault_time, fault_magnitude)
+        while self.t < t:
+            self.time_step()
+            mode_i, para_fault = self.fault_parameters(self.t, mode_i, fault_type, fault_time, fault_magnitude)
             mode_i, state_i = self.mode_step(mode_i, state_i) # mode +1
             state_i = self.state_step(mode_i, state_i, para_fault) # state +1
             output_i = self.output(mode_i, state_i) # output
@@ -82,25 +82,24 @@ class RO:
             self.states.append(state_i)
             self.outputs.append(output_i)
 
+    def time_step(self):
+        self.t += self.step_len
+
     def mode_step(self, mode_i, state_i): # important interface
-        h1 = 28.6770
-        h2 = 17.2930
-        h3 = 0.0670
+        if self.t - self.s_t < 33.0:
+            return mode_i, state_i
         mode_ip1 = mode_i
         state_ip1 = state_i[:]
-        p = state_i[3]
-        if mode_i is None:
-            mode_ip1 = 0
-        elif mode_i == 0:
-            if p > h1:
-                mode_ip1 = 1
+        if mode_i == 0:
+            mode_ip1 = 1
+            self.s_t = self.t
         elif mode_i == 1:
-            if p < h2:
-                mode_ip1 = 2
+            mode_ip1 = 2
+            self.s_t = self.t
         elif mode_i == 2:
-            if p < h3:
-                mode_ip1 = 0
-                state_ip1[4], state_ip1[5] = 0, 0
+            mode_ip1 = 0
+            state_ip1[4], state_ip1[5] = 0, 0
+            self.s_t = self.t
         else:
             pass # keep the mode
         return mode_ip1, state_ip1

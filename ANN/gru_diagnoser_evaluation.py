@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import logging
 import torch
+import matplotlib.pyplot as plt
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
@@ -48,6 +49,7 @@ def evaluate_states(est_states, ref_states):
 # get parameters from environment
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model_name', type=str, help='model name')
+parser.add_argument('-t', '--type', type=str, help='model type.')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 args = parser.parse_args()
 
@@ -59,17 +61,18 @@ log_path = os.path.join(this_path, log_path)
 
 # set log path
 if not os.path.exists(log_path):
-    os.mkdir(log_path)
+    os.makedirs(log_path)
 
+use_cuda = False
 si = 0.01
 # test data set
 obs_snr = 20
 state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10e9, 10e8])
-data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\test\\RO.cfg')
+data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\test_d\\RO.cfg')
 data_mana = data_manager(data_cfg, si)
 # diagnoser
-diagnoser = os.path.join(parentdir, 'ANN\\RO\\train\\{}'.format(model_name))
+diagnoser = os.path.join(parentdir, 'ANN\\model\\{}'.format(model_name))
 diagnoser = torch.load(diagnoser, map_location='cpu')
 diagnoser.eval()
 
@@ -92,22 +95,28 @@ for i in range(len(data_mana.data)):
     time, obs = output_with_noise.shape
     output_with_noise = output_with_noise.reshape(1, time, obs)
     output_with_noise = output_with_noise / obs_scale
-    output_with_noise = np2tensor(output_with_noise)
+    output_with_noise = np2tensor(output_with_noise, use_cuda)
 
 
     ref_mode = data_mana.select_modes(i)
     ref_state = data_mana.select_states(i)
 
-    mode, state, para = diagnoser(output_with_noise)
-    mode, state, para = mode[0].detach().numpy(), state[0].detach().numpy(), para[0].detach().numpy()
-    mode = np.argmin(mode, axis=1)
-    state = state*state_scale
-    res = ref_state - state
+    y_head = diagnoser(output_with_noise)
+    _, time, mode_dis = y_head.size()
+    y_head = y_head.detach().numpy().reshape(-1, mode_dis)
+    
+    if args.type=='detector':
+        mode = np.argmax(y_head, axis=1)
+        ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes_d{}'.format(i)))
+    elif args.type=='isolator':
+        x = np.arange(len(y_head))*si
+        plt.plot(x, y_head)
+        plt.legend(['n', 'f_f', 'f_r', 'f_m'])
+        plt.show()
+        plt.close()
 
-    ro.plot_states(state, file_name=os.path.join(log_path, 'states{}'.format(i)))
-    ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes{}'.format(i)))
-    ro.plot_res(res, file_name=os.path.join(log_path, 'res{}'.format(i)))
-    ro.plot_paras(para, file_name=os.path.join(log_path, 'paras{}'.format(i)))
+        fp = np.argmax(y_head, axis=1)
+        plt.plot(x, fp)
+        plt.savefig(os.path.join(log_path, 'fp{}.svg'.format(i)), format='svg')
+        plt.close()
 
-    evaluate_modes(mode, ref_mode)
-    evaluate_states(state, ref_state)

@@ -26,7 +26,7 @@ if __name__ == "__main__":
     length = args.length if args.length is not None else 300
 
     ro = RO(sample_int) # 0.01 is the maximal available sample interval
-    ro.run(init_state, length, fault_type, args.fault_time, args.magnitude)
+    ro.run(0, init_state, length, fault_type, args.fault_time, args.magnitude)
     ro.plot_states()
     ro.plot_modes()
 
