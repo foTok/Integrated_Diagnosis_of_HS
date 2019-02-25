@@ -224,7 +224,7 @@ if __name__ == "__main__":
         raise RuntimeError('Unknown Type.')
     model_name = args.output
 
-    save_path =  os.path.join(this_path, 'model'.format(data_set))
+    save_path =  'model'
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     
