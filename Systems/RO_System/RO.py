@@ -31,7 +31,7 @@ class RO:
     # states
     states = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # outputs
-    outputs = ['q_fp', 'p_tr', 'q_rp', 'e_Cbrine', 'e_Ck']
+    outputs = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine']
     # vars
     variables = ['mode', 'q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # fault parameters

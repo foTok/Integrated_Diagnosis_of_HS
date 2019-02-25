@@ -49,6 +49,7 @@ def evaluate_states(est_states, ref_states):
 # get parameters from environment
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model_name', type=str, help='model name')
+parser.add_argument('-d', '--data_set', type=str, help='data_set')
 parser.add_argument('-t', '--type', type=str, help='model type.')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 args = parser.parse_args()
@@ -67,9 +68,9 @@ use_cuda = False
 si = 0.01
 # test data set
 obs_snr = 20
-state_scale =np.array([1, 1, 1, 30, 10e9, 10e8])
-obs_scale =np.array([1, 1, 1, 10e9, 10e8])
-data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\test_d\\RO.cfg')
+state_scale =np.array([1, 1, 1, 10, 10e9, 10e8])
+obs_scale =np.array([1, 1, 1, 10, 10e9])
+data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\{}\\RO.cfg'.format(args.data_set))
 data_mana = data_manager(data_cfg, si)
 # diagnoser
 diagnoser = os.path.join(parentdir, 'ANN\\model\\{}'.format(model_name))
@@ -91,10 +92,9 @@ for i in range(len(data_mana.data)):
     _, _, _, msg = data_mana.get_info(i, prt=False)
     log_msg(msg)
 
-    output_with_noise = data_mana.select_outputs(i, obs_snr)
+    output_with_noise = data_mana.select_outputs(i, obs_snr, norm=obs_scale)
     time, obs = output_with_noise.shape
     output_with_noise = output_with_noise.reshape(1, time, obs)
-    output_with_noise = output_with_noise / obs_scale
     output_with_noise = np2tensor(output_with_noise, use_cuda)
 
 
@@ -107,7 +107,7 @@ for i in range(len(data_mana.data)):
     
     if args.type=='detector':
         mode = np.argmax(y_head, axis=1)
-        ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes_d{}'.format(i)))
+        ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes_{}_{}'.format(args.data_set, i)))
     elif args.type=='isolator':
         x = np.arange(len(y_head))*si
         plt.plot(x, y_head)
@@ -119,4 +119,3 @@ for i in range(len(data_mana.data)):
         plt.plot(x, fp)
         plt.savefig(os.path.join(log_path, 'fp{}.svg'.format(i)), format='svg')
         plt.close()
-
