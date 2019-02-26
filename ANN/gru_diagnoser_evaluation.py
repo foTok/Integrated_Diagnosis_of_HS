@@ -7,6 +7,7 @@ import argparse
 import logging
 import torch
 import matplotlib.pyplot as plt
+from scipy.special import softmax
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
@@ -51,9 +52,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model_name', type=str, help='model name')
 parser.add_argument('-d', '--data_set', type=str, help='data_set')
 parser.add_argument('-t', '--type', type=str, help='model type.')
+parser.add_argument('-r', '--res', type=str, help='if sample residual.')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 args = parser.parse_args()
 
+res = False if args.res is None else True
 model_name = 'ro.gru' if args.model_name is None else args.model_name
 this_path = os.path.dirname(os.path.abspath(__file__))
 log_path = 'eval' if args.output is None else 'eval\\{}'.format(args.output)
@@ -80,6 +83,9 @@ diagnoser.eval()
 # set log
 logging.basicConfig(filename=os.path.join(log_path, 'log.txt'), level=logging.INFO)
 
+# data 0
+data_mana0 = data_manager(os.path.join(parentdir, 'Systems\\RO_System\\test_n\\RO.cfg'), si)
+output_n = data_mana0.select_outputs(0, norm=obs_scale)
 # ro
 ro = RO(si)
 
@@ -93,6 +99,7 @@ for i in range(len(data_mana.data)):
     log_msg(msg)
 
     output_with_noise = data_mana.select_outputs(i, obs_snr, norm=obs_scale)
+    output_with_noise = output_with_noise - output_n if res else output_with_noise
     time, obs = output_with_noise.shape
     output_with_noise = output_with_noise.reshape(1, time, obs)
     output_with_noise = np2tensor(output_with_noise, use_cuda)
@@ -102,14 +109,15 @@ for i in range(len(data_mana.data)):
     ref_state = data_mana.select_states(i)
 
     y_head = diagnoser(output_with_noise)
-    _, time, mode_dis = y_head.size()
-    y_head = y_head.detach().numpy().reshape(-1, mode_dis)
+    _, time, feature = y_head.size()
+    y_head = y_head.detach().numpy().reshape(-1, feature)
     
     if args.type=='detector':
         mode = np.argmax(y_head, axis=1)
         ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes_{}_{}'.format(args.data_set, i)))
     elif args.type=='isolator':
         x = np.arange(len(y_head))*si
+        y_head = softmax(y_head, axis=1)
         plt.plot(x, y_head)
         plt.legend(['n', 'f_f', 'f_r', 'f_m'])
         plt.show()
@@ -119,3 +127,14 @@ for i in range(len(data_mana.data)):
         plt.plot(x, fp)
         plt.savefig(os.path.join(log_path, 'fp{}.svg'.format(i)), format='svg')
         plt.close()
+    elif args.type=='f_f':
+        x = np.arange(len(y_head))*si
+        y_head = y_head.reshape(-1)
+        plt.plot(x, y_head)
+        plt.show()
+        plt.savefig(os.path.join(log_path, 'f_f{}.svg'.format(i)), format='svg')
+        plt.close()
+    elif args.type=='f_r':
+        pass
+    else:
+        raise RuntimeError('Unknown Type.')
