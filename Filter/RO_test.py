@@ -28,7 +28,6 @@ if __name__ == '__main__':
     si = 0.01
     process_snr = 45
     obs_snr = 20
-    proportion = 1.0
     obs_scale =np.array([1,1,1,10,10e9])
     test = 'test' if args.test is None else args.test
     mode_detector = os.path.join(parentdir, 'ANN/model/cnn_gru_mode_detector')

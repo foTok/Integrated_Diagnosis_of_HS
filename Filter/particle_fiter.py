@@ -20,7 +20,7 @@ from Fault_diagnosis.fault_detector import Z_test
 from ANN.cnn_gru_diagnoser import ann_step
 from utilities.utilities import np2tensor
 from utilities.utilities import smooth
-from utilities.utilities import dynamic_smooth
+from utilities.utilities import window_smooth
 from utilities.utilities import index
 from utilities.utilities import dis_sample
 
@@ -186,6 +186,7 @@ class hpf: # hybrid particle filter
         self.para_fault_id = []
         self.latest_sp = 0 # latest switch point
         self.stop_fault_process = False
+        self.fault_time = 0
 
     def set_output_names(self, names):
         self.output_names = names
@@ -254,9 +255,9 @@ class hpf: # hybrid particle filter
             para_sigma = np.std(para_2w, 0)*(para!=0)/np.sqrt(2*window_len)
             self.fault_para = para
             self.stop_fault_process = True
-            fault_time = self.find_fault_time()
+            self.fault_time = self.find_fault_time()
             msg = 'A fault occurred at {}s, estimated its magenitude at {}s, fault parameters are mu={}, sigma={}.'\
-                  .format(round(fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
+                  .format(round(self.fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
             self.log_msg(msg)
 
     def init_particles(self):
@@ -386,6 +387,9 @@ class hpf: # hybrid particle filter
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                 i += 1
 
+    def fault_info(self):
+        return self.fault_time, self.fault_para
+
     def ave_state(self, ptcs):
         return sum([p.weight*p.state for p in ptcs])
 
@@ -402,12 +406,15 @@ class hpf: # hybrid particle filter
         self.hsw.plot_res(res, file_name)
 
     def plot_para(self, file_name=None):
-        paras = np.array(self.para)
-        self.hsw.plot_paras(paras, file_name)
+        para = np.array(self.para)
+        window_smooth(para, 100, 500, 100)
+        self.hsw.plot_paras(para, file_name)
 
     def plot_para_fault(self):
         x = np.arange(len(self.para_fault_id))*self.hsw.step_len
         pf = np.array(self.para_fault_id)
+        window_smooth(pf, 100, 500, 100)
+        pf = smooth(pf, 50)
         plt.plot(x, pf)
         plt.show()
 
@@ -447,4 +454,4 @@ class hpf: # hybrid particle filter
         n_sigma = np.std(n_res, 0)
         msg = 'States error n_mu = {}, n_sigma = {}.'.format(np.round(n_mu, 4), np.round(n_sigma, 4))
         self.log_msg(msg)
-        return mu, sigma
+        return mu, sigma, n_mu, n_sigma

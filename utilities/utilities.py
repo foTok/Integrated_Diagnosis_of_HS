@@ -130,3 +130,8 @@ def np2tensor(x, use_cuda=True):
         return torch.tensor(x, dtype=torch.float).cuda()
     else:
         return torch.tensor(x, dtype=torch.float)
+
+def window_smooth(data, w1, w2, w3):
+    for i in range(w1, len(data)-w2-w3):
+        test = (data[i-w1:i]==0).all(0) * (data[i+w2:i+w2+w3]==0).all(0)
+        data[i:i+w2] = data[i:i+w2]*(~test)
