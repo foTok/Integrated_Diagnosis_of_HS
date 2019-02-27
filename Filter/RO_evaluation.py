@@ -8,6 +8,7 @@ sys.path.insert(0,parentdir)
 import numpy as np
 import argparse
 import logging
+import matplotlib as mpl
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
@@ -16,6 +17,7 @@ from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
 from utilities.utilities import obtain_var
 
+mpl.rc('font',family='Times New Roman')
 # get parameters from environment
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--conf', type=str, choices=['exp', 'chi2'], help='confidence')
