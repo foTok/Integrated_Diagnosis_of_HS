@@ -21,23 +21,22 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--conf', type=str, choices=['exp', 'chi2'], help='confidence')
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
     parser.add_argument('-t', '--test', type=str, help='test_set')
-    parser.add_argument('-fd', '--fd', type=float, help='fault detection close window')
-    parser.add_argument('-fp', '--fp', type=float, help='fault parameter estimation window')
     args = parser.parse_args()
     # read parameters from environment
     conf = exp_confidence if args.conf=='exp' else chi2_confidence
     index = 0 if args.index is None else args.index
-    fd, fp = (3 if args.fd is None else args.fd), (8 if args.fp is None else args.fp)
     si = 0.01
     process_snr = 45
     obs_snr = 20
-    limit = (3, 2)
     proportion = 1.0
-    state_scale =np.array([1,1,1,30,10e9,10e8])
-    obs_scale =np.array([1,1,1,10e9,10e8])
+    obs_scale =np.array([1,1,1,10,10e9])
     test = 'test' if args.test is None else args.test
-    identifier = os.path.join(parentdir, 'ANN\\RO\\train\\ro.cnn')
-    data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\data\\{}\\RO.cfg'.format(test))
+    mode_detector = os.path.join(parentdir, 'ANN/model/cnn_gru_mode_detector')
+    pf_isolator = os.path.join(parentdir, 'ANN/model/cnn_gru_pf_isolator_res')
+    f_f_identifier = os.path.join(parentdir, 'ANN/model/cnn_gru_f_f_identifier_res')
+    f_r_identifier = os.path.join(parentdir, 'ANN/model/cnn_gru_f_r_identifier_res')
+
+    data_cfg = os.path.join(parentdir, 'Systems/RO_System/{}/RO.cfg'.format(test))
     data_mana = data_manager(data_cfg, si)
     msg = data_mana.get_info(index, prt=False)
     state = data_mana.select_states(index)
@@ -47,21 +46,21 @@ if __name__ == '__main__':
     modes = data_mana.select_modes(index)
 
     state_sigma = np.sqrt(obtain_var(state, process_snr))
+    state_sigma[-1] = 1
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
 
     ro = RO(si)
     hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
     logging.basicConfig(filename='log\\log.txt', level=logging.INFO)
     tracker = hpf(hsw, conf=conf)
-    tracker.load_identifier(identifier)
-    tracker.set_scale(state_scale, obs_scale)
+    tracker.load_mode_detector(mode_detector)
+    tracker.load_pf_isolator(pf_isolator)
+    tracker.load_identifier([f_f_identifier, f_r_identifier])
+    tracker.set_scale(obs_scale)
     tracker.log_msg(msg)
-    tracker.track(modes=0, state_mean=np.zeros(6), state_var=np.zeros(6), \
-                  observations=output_with_noise, limit=limit, \
-                  fd=fd, fp=fp, proportion=proportion, \
-                  Nmin=150, Nmax=200)
-    tracker.plot_states(file_name='log/states')
-    tracker.plot_modes(file_name='log/modes')
-    tracker.plot_res(file_name='log/res')
-    tracker.plot_Z(file_name='log/Z')
-    tracker.plot_paras(file_name='log/paras')
+    tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=50)
+    tracker.plot_state()
+    tracker.plot_mode()
+    tracker.plot_res()
+    tracker.plot_para()
+    tracker.plot_para_fault()

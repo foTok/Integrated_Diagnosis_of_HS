@@ -138,8 +138,7 @@ class cnn_gru_pf_identifier(nn.Module):
         # FC module, which converts the inner states into system mode distribution.
         fc_maps = [hidden_size] + fc_size + [1]
         self.fc = nn.ModuleList([nn.Linear(fc_maps[i], fc_maps[i+1]) for i in range(len(fc_maps)-1)])
-        self.ac = nn.ModuleList([nn.PReLU() for _ in range(len(fc_maps)-2)]) # Active function for the last linear layer is not here.
-        self.sm = nn.Sigmoid()
+        self.ac = nn.ModuleList([nn.PReLU() for _ in range(len(fc_maps)-1)]) # Active function for the last linear layer is not here.
 
     def forward(self, x):
         # x: (batch, sequence, channel) => (batch, channel, sequence)
@@ -157,6 +156,50 @@ class cnn_gru_pf_identifier(nn.Module):
         for l, a in zip(self.fc, self.ac):
             x = l(x)
             x = a(x)
-        x = self.fc[-1](x)
-        x = self.sm(x)
         return x
+
+class ann_step:
+    def __init__(self, ann):
+        self.ann = ann
+        self.obs = []
+        self.N = np.sum(ann.cnn_kernel_size) - len(ann.cnn_kernel_size) + 1
+        self.hidden = None
+        self.out = []
+
+    def step(self, obs):
+        self.obs.append(obs)
+        if len(self.obs) < self.N:
+            x = np.pad(self.obs, ((self.N-len(self.obs), 0), (0, 0)), 'constant')
+        else:
+            x = np.array(self.obs[-self.N:])
+        x = torch.tensor(x, dtype=torch.float)
+        seq, cha = x.size()
+        x = x.view(1, seq, cha)
+        # x: (batch, sequence, channel) => (batch, channel, sequence)
+        x = x.permute([0, 2, 1])
+        # CNN
+        for c, a in zip(self.ann.cnn_layer, self.ann.cnn_ac_layer):
+            x = c(x)
+            x = a(x)
+        # x: (batch, channel, sequence) => (batch, sequence, channel)
+        x = x.permute([0, 2, 1])
+        # RNN/GRU
+        if self.hidden is None:
+            x, self.hidden = self.ann.rnn(x)
+        else:
+            x, self.hidden = self.ann.rnn(x, self.hidden)
+        # FC
+        for l, a in zip(self.ann.fc, self.ann.ac):
+            x = l(x)
+            x = a(x)
+        if len(self.ann.fc)!=len(self.ann.ac):
+            x = self.ann.fc[-1](x)
+        x = x[0,0,:].detach().numpy()
+        self.out.append(x)
+        return x
+
+    def latest_out(self):
+        if not self.out:
+            return None
+        else:
+            return self.out[-1]

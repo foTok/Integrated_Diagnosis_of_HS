@@ -45,8 +45,8 @@ class RO:
         self.states = []
         self.outputs = []
         self.state_disturb = None
-        self.t = 0
-        self.s_t = 0
+        self.t = step_len
+        self.s_t = step_len
 
     def set_state_disturb(self, disturb): # important interface
         self.state_disturb = disturb
@@ -81,6 +81,12 @@ class RO:
             self.modes.append(mode_i)
             self.states.append(state_i)
             self.outputs.append(output_i)
+
+    def reset_state(self, mode_i, mode_ip1, state_i):
+        if mode_i==2 and mode_ip1==0:
+            state_i = state_i[:]
+            state_i[4], state_i[5] = 0, 0
+        return state_i
 
     def time_step(self):
         self.t += self.step_len

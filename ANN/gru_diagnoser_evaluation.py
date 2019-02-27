@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.special import softmax
 from Systems.data_manager import data_manager
 from Systems.RO_System.RO import RO
+from cnn_gru_diagnoser import ann_step
 from utilities.utilities import obtain_var
 from utilities.utilities import np2tensor
 
@@ -71,7 +72,6 @@ use_cuda = False
 si = 0.01
 # test data set
 obs_snr = 20
-state_scale =np.array([1, 1, 1, 10, 10e9, 10e8])
 obs_scale =np.array([1, 1, 1, 10, 10e9])
 data_cfg = os.path.join(parentdir, 'Systems\\RO_System\\{}\\RO.cfg'.format(args.data_set))
 data_mana = data_manager(data_cfg, si)
@@ -100,17 +100,23 @@ for i in range(len(data_mana.data)):
 
     output_with_noise = data_mana.select_outputs(i, obs_snr, norm=obs_scale)
     output_with_noise = output_with_noise - output_n if res else output_with_noise
-    time, obs = output_with_noise.shape
-    output_with_noise = output_with_noise.reshape(1, time, obs)
-    output_with_noise = np2tensor(output_with_noise, use_cuda)
+    # time, obs = output_with_noise.shape
+    # output_with_noise = output_with_noise.reshape(1, time, obs)
+    # output_with_noise = np2tensor(output_with_noise, use_cuda)
 
 
     ref_mode = data_mana.select_modes(i)
     ref_state = data_mana.select_states(i)
 
-    y_head = diagnoser(output_with_noise)
-    _, time, feature = y_head.size()
-    y_head = y_head.detach().numpy().reshape(-1, feature)
+    # y_head = diagnoser(output_with_noise)
+    # _, time, feature = y_head.size()
+    # y_head = y_head.detach().numpy().reshape(-1, feature)
+    ann_steper = ann_step(diagnoser)
+    y_head = []
+    for obs in output_with_noise:
+        y = ann_steper.step(obs)
+        y_head.append(y)
+    y_head = np.array(y_head)
     
     if args.type=='detector':
         mode = np.argmax(y_head, axis=1)
