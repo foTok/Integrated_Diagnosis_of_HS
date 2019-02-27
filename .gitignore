@@ -7,7 +7,6 @@ data
 eval
 Pic
 log*
-model*
 *.pyc
 *.npydata
 *.png

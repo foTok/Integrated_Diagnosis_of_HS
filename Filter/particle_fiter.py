@@ -255,7 +255,7 @@ class hpf: # hybrid particle filter
             self.fault_para = para
             self.stop_fault_process = True
             fault_time = self.find_fault_time()
-            msg = 'Fault occurred at {}s, estimated its value at {}s, fault parameters are mu={}, sigma={}.'\
+            msg = 'A fault occurred at {}s, estimated its magenitude at {}s, fault parameters are mu={}, sigma={}.'\
                   .format(round(fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
             self.log_msg(msg)
 
