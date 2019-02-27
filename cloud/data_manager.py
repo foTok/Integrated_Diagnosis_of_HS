@@ -224,13 +224,15 @@ class data_manager:
         hs0, x, m, y, p = np.array(hs0), np.array(x), np.array(m), np.array(y), np.array(p)
         return hs0, x, m, y, p
 
-    def sample_all(self, size, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[], output_names=None):
+    def sample_all(self, size, normal_proportion, snr_or_pro=None, norm_o=None, norm_s=None, mask=[], output_names=None, res=False):
         '''
         size:
             int, the number of sampled data.
         window:
             int, the lenght of each data point.
         '''
+        # normal output
+        output_n = self.select_outputs(0, norm=norm_o, output_names=output_names)
         # mask labels
         the_labels = []
         for l in self.labels:
@@ -264,6 +266,15 @@ class data_manager:
                     fault_time = int(term.fault_time / self.sample_int)
                     p_mode[fault_time:] = fault_index+1
                     p_value[fault_time:, self.cfg.fault_para_names.index(term.fault_type)] = term.fault_magnitude
+                    # patch
+                    if term.fault_type=='f_r':
+                        _m = modes_i.reshape(-1)
+                        reverse_index = (_m==2)
+                        p_mode[reverse_index] = 0
+                        p_value[reverse_index, :] = 0
+                # if res
+                if res:
+                    outputs_i = outputs_i - output_n
                 # store them
                 x.append(outputs_i)
                 m.append(modes_i.reshape(-1))
