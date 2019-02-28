@@ -1,6 +1,8 @@
 This project combines Model-based (MBD) and Data-driven (DDD) methods to diagnose hybrid systems (HS).
 
 # Framework
+
+'''
                 -----------------------------------------------------------------
                 |                                                               |
                 V                                                               |
@@ -8,6 +10,7 @@ Obs -----> |Particle Filter| --->  Res ---> |ANN Fault Identifier| ---> |Varianc
  |              ^                   |                                           ^
  |              |                   V                                           |
  --------> |ANN Mode Detector|   |ANN Fault Isolator| --------------------------|
+ '''
 
 ANN mode detector employs Obs to detect the current mode. Particle filter estimate the current continuous state based on 
 the discrete mode and Obs to generate residual Res. ANN fault isolator and ann fault identifier utilize Res to detect and 
