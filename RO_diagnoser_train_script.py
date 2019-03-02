@@ -13,12 +13,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.nn import MSELoss
 from torch.nn import CrossEntropyLoss
-from gru_diagnoser import gru_mode_detector
-from gru_diagnoser import gru_para_fault_isolator
-from gru_diagnoser import gru_para_fault_identifier
-from lstm_diagnoser import lstm_mode_detector
-from lstm_diagnoser import lstm_para_fault_isolator
-from lstm_diagnoser import lstm_para_fault_identifier
 from cnn_gru_diagnoser import cnn_gru_mode_detector
 from cnn_gru_diagnoser import cnn_gru_pf_isolator
 from cnn_gru_diagnoser import cnn_gru_pf_identifier
@@ -52,15 +46,14 @@ def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
     return data_mana
 
-def sample_data(data_mana, batch, normal_proportion, snr_or_pro, mask, obs, res):
+def sample_data(data_mana, batch, normal_proportion, snr_or_pro, mask):
     r = data_mana.sample_all(size=batch, \
                     normal_proportion=normal_proportion, \
                     snr_or_pro=snr_or_pro,\
                     norm_o=np.array([1,1,1,10,10e9]), \
                     norm_s=np.array([1,1,1,10,10e9,10e8]),\
                     mask=mask,\
-                    output_names=obs,\
-                    res=res)
+                    res=True)
     return r
 
 def show_loss(i, loss, running_loss):
@@ -75,14 +68,14 @@ def show_loss(i, loss, running_loss):
     return running_loss
 
 def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
-       data_mana, diagnoser, optimizer, obs_snr, mask, obs, use_cuda, res):
+       data_mana, diagnoser, optimizer, obs_snr, mask, use_cuda):
     train_loss = []
     running_loss = 0
 
     for i in range(epoch):
         optimizer.zero_grad()
 
-        x, m, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask, obs=obs, res=res)
+        x, m, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask)
         m = m%3
         y_head = diagnoser(np2tensor(x, use_cuda))
 
@@ -90,7 +83,7 @@ def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
             loss = cross_entropy(y_head, m, use_cuda)
         elif model_type=='isolator':
             loss = cross_entropy(y_head, fp_mode, use_cuda)
-        elif model_type=='f_f' or model_type=='f_r':
+        elif model_type=='f_f' or model_type=='f_r' or model_type=='f_m' :
             fp_vec = (np.sum(fp_value, (0, 1))!=0)
             index = np.sum(fp_vec*np.array([0, 1, 2]))
             y = fp_value[:, :, [index]]
@@ -107,51 +100,7 @@ def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
         plot(train_loss, save_path, model_name)
     return train_loss
 
-def get_gru_model(t, use_cuda=True):
-    print('GRU Model')
-    if t=='detector':
-        model = gru_mode_detector(x_size=5,\
-                          mode_size=3,\
-                          rnn_size=[64, 4],\
-                          fc_size=[128, 64, 32])
-    elif t=='isolator':
-        model = gru_para_fault_isolator(x_size=5,\
-                            para_size=3,\
-                            rnn_size=[64, 4],\
-                            fc_size=[128, 64, 32])
-    elif t=='identifier':
-        model = gru_para_fault_identifier(x_size=5,\
-                              rnn_size=[64, 4],\
-                              fc_size=[128, 64, 32])
-    else:
-        raise RuntimeError('Unknown Type.')
-    if torch.cuda.is_available() and use_cuda:
-        model.cuda()
-    return model
-
-def get_lstm_model(t, use_cuda=True):
-    print('LSTM Model')
-    if t=='detector':
-        model = lstm_mode_detector(x_size=5,\
-                          mode_size=3,\
-                          rnn_size=[64, 4],\
-                          fc_size=[128, 64, 32])
-    elif t=='isolator':
-        model = lstm_para_fault_isolator(x_size=5,\
-                            para_size=3,\
-                            rnn_size=[64, 4],\
-                            fc_size=[128, 64, 32])
-    elif t=='identifier':
-        model = lstm_para_fault_identifier(x_size=5,\
-                              rnn_size=[64, 4],\
-                              fc_size=[128, 64, 32])
-    else:
-        raise RuntimeError('Unknown Type.')
-    if torch.cuda.is_available() and use_cuda:
-        model.cuda()
-    return model
-
-def get_cnn_gru_model(t, use_cuda=True):
+def get_model(t, use_cuda=True):
     print('CNN-GRU Model')
     if t=='detector':
         model = cnn_gru_mode_detector( x_size=5,\
@@ -174,16 +123,6 @@ def get_cnn_gru_model(t, use_cuda=True):
         model.cuda()
     return model
 
-def get_model(net, t, use_cuda):
-    if net=='gru':
-        return get_gru_model(t, use_cuda)
-    elif net=='lstm':
-        return get_lstm_model(t, use_cuda)
-    elif net=='cnn_gru':
-        return get_cnn_gru_model(t, use_cuda)
-    else:
-        raise RuntimeError('Unknown Net Type.')
-
 def save_model(model, path, name):
     torch.save(model, os.path.join(path, name))
 
@@ -200,36 +139,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data', type=str, help='choose the key values.')
     parser.add_argument('-t', '--type', type=str, help='model type.')
-    parser.add_argument('-n', '--net', type=str, help='network type.')
-    parser.add_argument('-r', '--res', type=str, help='if sample residual.')
     parser.add_argument('-o', '--output', type=str, help='choose output names.')
     args = parser.parse_args()
 
     use_cuda = True
-    obs = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine']
-    res = False if args.res is None else True
-
     data_set = args.data
+    model_name = args.output
     # mask
     if args.type=='detector':# mode detector
-        model = get_model(args.net, 'detector', use_cuda)
-        mask = ['f_m']
+        model = get_model('detector', use_cuda)
+        mask = []
         normal_proportion = 0.1
     elif args.type=='isolator': # fault parameter isolator
-        model = get_model(args.net, 'isolator', use_cuda)
-        mask = ['s_normal', 's_pressure', 's_reverse', 'f_m']
+        model = get_model('isolator', use_cuda)
+        mask = ['s_normal', 's_pressure', 's_reverse']
         normal_proportion = 0.05
     elif args.type=='f_f':
-        model = get_model(args.net, 'identifier', use_cuda)
+        model = get_model('identifier', use_cuda)
         mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_r', 'f_m']
         normal_proportion = 0
     elif args.type=='f_r':
-        model = get_model(args.net, 'identifier', use_cuda)
+        model = get_model('identifier', use_cuda)
         mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_m']
+        normal_proportion = 0
+    elif args.type=='f_m':
+        model = get_model('identifier', use_cuda)
+        mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
         normal_proportion = 0
     else:
         raise RuntimeError('Unknown Type.')
-    model_name = args.output
 
     save_path =  'model'
     if not os.path.isdir(save_path):
@@ -248,4 +186,4 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)
     # train
     train(save_path, model_name, args.type, epoch, batch, normal_proportion, \
-        data_mana, model, optimizer, obs_snr, mask, obs, use_cuda, res)
+          data_mana, model, optimizer, obs_snr, mask, use_cuda)

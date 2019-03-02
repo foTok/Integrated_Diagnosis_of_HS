@@ -5,7 +5,6 @@ import os
 import sys
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
 sys.path.insert(0, rootdir)
-sys.path.insert(0, os.path.join(rootdir, 'ANN'))
 import torch
 import progressbar
 import logging
@@ -14,70 +13,16 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 from math import log
 from math import exp
-from scipy.stats import chi2
-from scipy.stats import norm
-from Fault_diagnosis.fault_detector import Z_test
-from ANN.cnn_gru_diagnoser import ann_step
-from utilities.utilities import np2tensor
-from utilities.utilities import smooth
-from utilities.utilities import window_smooth
-from utilities.utilities import index
-from utilities.utilities import dis_sample
+from cnn_gru_diagnoser import ann_step
+from utilities import np2tensor
+from utilities import smooth
+from utilities import window_smooth
+from utilities import index
+from utilities import dis_sample
+from utilities import exp_confidence
+from utilities import normalize
+from utilities import resample
 
-def chi2_confidence(x, df):
-    '''
-    return the confidence
-    x is the value which is normalized.
-    df is the freedom
-    '''
-    return 1 - chi2.cdf(x, df)
-
-def exp_confidence(x, df=None):
-    '''
-    exp(-0.5*r^2), x=r^2
-    df: no significance, keep a consistent interface.
-    '''
-    return np.exp(-0.5*x)
-
-def normalize(particles):
-    w = [ptc.weight for ptc in particles]
-    w = 0 if max(w)<0.01/len(particles) else sum(w)
-    for ptc in particles:
-        ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
-
-def resample(particles, N=None):
-    N = len(particles) if N is None else N
-    interval = [0]
-    for ptc in particles:
-        interval.append(interval[-1]+ptc.weight)
-    samples = np.random.uniform(interval[0], interval[-1], N)
-    new_partiles = []
-    for s in samples:
-        i = index(s, interval)
-        ptc = particles[i].clone()
-        ptc.set_weigth(1/N)
-        new_partiles.append(ptc)
-    return new_partiles
-
-def hybrid_resample(particles, N, keep_dis_mode=False):
-    if not keep_dis_mode:
-        return resample(particles, N)
-    N0 = len(particles)
-    particle_dict = {}
-    for p in particles:
-        key = p.mode_values if isinstance(p.mode_values, int) else tuple(p.mode_values)
-        if key in particle_dict:
-            particle_dict[key].append(p)
-        else:
-            particle_dict[key] = [p]
-    particle_list = []
-    for key in particle_dict:
-        particles_k = particle_dict[key]
-        n = int(N*len(particles_k)/N0)
-        particle_list += resample(particles_k, n)
-    for p in particle_list:
-        p.set_weigth(1/len(particle_list))
-    return particle_list
 
 class hybrid_particle:
     '''
@@ -160,10 +105,8 @@ class hs_system_wrapper:
             self.hs.plot_paras(paras, file_name)
 
 class hpf: # hybrid particle filter
-    def __init__(self, hsw, conf=chi2_confidence):
+    def __init__(self, hsw, conf=exp_confidence):
         self.N = None
-        self.Nmin = None
-        self.Nmax = None
         self.obs = None
         self.mode0 = None
         self.state_mu0 = None

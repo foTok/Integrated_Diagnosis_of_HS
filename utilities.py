@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 from torch.distributions.normal import Normal
+from scipy.stats import norm
+from scipy.stats import chi2
 
 def index(s, interval):
     for i, t in zip(range(len(interval)-1), interval[1:]):
@@ -125,8 +127,73 @@ def normal_stochastic_loss(mu, sigma, obs, k=1, mask=None):
     sum_loss = torch.sum(mean_loss)
     return sum_loss
 
-def np2tensor(x, use_cuda):
+def np2tensor(x, use_cuda=True):
     if torch.cuda.is_available() and use_cuda:
         return torch.tensor(x, dtype=torch.float).cuda()
     else:
         return torch.tensor(x, dtype=torch.float)
+
+def window_smooth(data, w1, w2, w3):
+    for i in range(w1, len(data)-w2-w3):
+        test = (data[i-w1:i]==0).all(0) * (data[i+w2:i+w2+w3]==0).all(0)
+        data[i:i+w2] = data[i:i+w2]*(~test)
+
+def Z_test(res, window1, window2, conf=0.99, dynamic=False):
+    '''
+    |window1|window2|
+    if the length of res is less that window1+window2, return 0 directly.
+    res: a list or np.array
+    '''
+    res = np.array(res)
+    if len(res) < window1+window2:
+        if len(res.shape)==1:
+            return 0
+        else:
+            _, n = res.shape
+            return np.array([0]*n)
+    # mean and variance of window1
+    res1 = res[-(window1+window2):-window2] if dynamic else res[:window1+1]
+    mean1, var1 = np.mean(res1, 0), np.var(res1, 0)
+    # mean of window2
+    res2 = res[-window2:]
+    mean2 = np.mean(res2)
+    # the var should be modified based on windows
+    abs_normalized = abs(mean2 - mean1) / np.sqrt(var1/window2)
+    thresh = norm.ppf(1-(1-conf)/2)
+    results = (abs_normalized > thresh) + 0
+    return results
+
+def chi2_confidence(x, df):
+    '''
+    return the confidence
+    x is the value which is normalized.
+    df is the freedom
+    '''
+    return 1 - chi2.cdf(x, df)
+
+def exp_confidence(x, df=None):
+    '''
+    exp(-0.5*r^2), x=r^2
+    df: no significance, keep a consistent interface.
+    '''
+    return np.exp(-0.5*x)
+
+def normalize(particles):
+    w = [ptc.weight for ptc in particles]
+    w = 0 if max(w)<0.01/len(particles) else sum(w)
+    for ptc in particles:
+        ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
+
+def resample(particles, N=None):
+    N = len(particles) if N is None else N
+    interval = [0]
+    for ptc in particles:
+        interval.append(interval[-1]+ptc.weight)
+    samples = np.random.uniform(interval[0], interval[-1], N)
+    new_partiles = []
+    for s in samples:
+        i = index(s, interval)
+        ptc = particles[i].clone()
+        ptc.set_weigth(1/N)
+        new_partiles.append(ptc)
+    return new_partiles

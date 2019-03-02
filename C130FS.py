@@ -47,7 +47,7 @@ Specifications
 '''
 import numpy as np
 import matplotlib.pyplot as plt
-from utilities.utilities import add_noise
+from utilities import add_noise
 
 class C130FS:
     '''

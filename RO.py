@@ -7,8 +7,8 @@ rootdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 sys.path.insert(0,rootdir)
 import numpy as np
 import matplotlib.pyplot as plt
-from utilities.utilities import add_noise
-from utilities.utilities import dis_sample
+from utilities import add_noise
+from utilities import dis_sample
 
 class RO:
     # parameters
@@ -125,8 +125,9 @@ class RO:
         f_f, f_r, f_m = fault_parameters
         # step forward
         step_len = self.step_len
-        # e_RO20 in Chapter_13
-        R_memb  = 0.202*(4.137e11*((_e_Ck - 12000)/165 + 29))
+        # e_RO20 in Chapter_13 is changed.
+        # R_memb  = 0.202*(4.137e11*((_e_Ck - 12000)/165 + 29))
+        R_memb  = 0.202*(4.137*(_e_Ck/(1.65e8) + 15))
         # e_RO1
         q_fp    = _q_fp + step_len* \
                 (- RO.R_fp*_q_fp \

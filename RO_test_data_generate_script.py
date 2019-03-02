@@ -10,8 +10,8 @@ import progressbar
 import argparse
 from RO import RO
 from numpy.random import uniform
-from Systems.data_manager import cfg
-from Systems.data_manager import term
+from data_manager import cfg
+from data_manager import term
 
 def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01, fault_type=None, fault_time=None, fault_magnitude=None):
     model.run(0, init_state, t, fault_type, fault_time, fault_magnitude)

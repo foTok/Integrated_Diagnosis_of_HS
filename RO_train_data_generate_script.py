@@ -7,8 +7,8 @@ import numpy as np
 import progressbar
 import argparse
 from RO import RO
-from Systems.data_manager import cfg
-from Systems.data_manager import term
+from data_manager import cfg
+from data_manager import term
 
 def simulate(file_name, model, init_state=[0,0,0,0,0,0], t=300, sample_int=0.01, fault_type=None, fault_time=None, fault_magnitude=None):
     model.run(0, init_state, t, fault_type, fault_time, fault_magnitude)
@@ -27,8 +27,9 @@ if __name__ == "__main__":
                's_pressure': np.arange(66, 132, 1),\
                's_reverse':np.arange(99, 165, 1),\
                'f_f':np.arange(99, 198, 1),\
-               'f_r':np.arange(99, 165, 1)}
-    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
+               'f_r':np.arange(99, 165, 1),\
+               'f_m':np.arange(99, 198, 1)}
+    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m']
     fault_magnitude_list = np.arange(0.05, 0.505, 0.05)
     file_num = 1
     for f in fault_type_list:

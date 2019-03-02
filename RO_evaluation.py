@@ -5,17 +5,18 @@ import os
 import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
-import numpy as np
+import torch
 import argparse
 import logging
+import numpy as np
 import matplotlib as mpl
 from particle_fiter import chi2_confidence
 from particle_fiter import exp_confidence
 from particle_fiter import hs_system_wrapper
 from particle_fiter import hpf
-from Systems.data_manager import data_manager
-from Systems.RO_System.RO import RO
-from utilities.utilities import obtain_var
+from data_manager import data_manager
+from RO import RO
+from utilities import obtain_var
 
 mpl.rc('font',family='Times New Roman')
 # get parameters from environment
@@ -36,11 +37,11 @@ repeat = 10 if args.repeat is None else args.repeat
 conf = chi2_confidence if args.conf=='chi2' else exp_confidence
 N = 50 if args.num is None else args.num
 test = 'test' if args.test is None else args.test
-mode_detector = os.path.join(parentdir, 'ANN/model/cnn_gru_mode_detector')
-pf_isolator = os.path.join(parentdir, 'ANN/model/cnn_gru_pf_isolator_res')
-f_f_identifier = os.path.join(parentdir, 'ANN/model/cnn_gru_f_f_identifier_res')
-f_r_identifier = os.path.join(parentdir, 'ANN/model/cnn_gru_f_r_identifier_res')
-data_cfg = os.path.join(parentdir, 'Systems/RO_System/{}/RO.cfg'.format(test))
+mode_detector = os.path.join(parentdir, 'model/cnn_gru_mode_detector')
+pf_isolator = os.path.join(parentdir, 'model/cnn_gru_pf_isolator_res')
+f_f_identifier = os.path.join(parentdir, 'model/cnn_gru_f_f_identifier_res')
+f_r_identifier = os.path.join(parentdir, 'model/cnn_gru_f_r_identifier_res')
+data_cfg = os.path.join(parentdir, '{}/RO.cfg'.format(test))
 data_mana = data_manager(data_cfg, si)
 # log directory
 log_path = 'log\\RO\\{}'.format(args.output)
@@ -67,18 +68,19 @@ for k in range(repeat):
         state_sigma[-1] = 1
         obs_sigma = np.sqrt(obtain_var(output, obs_snr))
         # create tracker and start tracking.
-        ro = RO(si)
-        hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
-        tracker = hpf(hsw, conf=conf)
-        tracker.load_mode_detector(mode_detector)
-        tracker.load_pf_isolator(pf_isolator)
-        tracker.load_identifier([f_f_identifier, f_r_identifier])
-        tracker.set_scale(obs_scale)
-        tracker.log_msg(msg)
-        tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
-        tracker.plot_state(file_name=os.path.join(fig_path, 'states{}'.format(k)))
-        tracker.plot_mode(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
-        tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
-        tracker.plot_para(file_name=os.path.join(fig_path, 'paras{}'.format(k)))
-        tracker.evaluate_modes(ref_mode)
-        tracker.evaluate_states(ref_state)
+        with torch.no_grad():
+            ro = RO(si)
+            hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
+            tracker = hpf(hsw, conf=conf)
+            tracker.load_mode_detector(mode_detector)
+            tracker.load_pf_isolator(pf_isolator)
+            tracker.load_identifier([f_f_identifier, f_r_identifier])
+            tracker.set_scale(obs_scale)
+            tracker.log_msg(msg)
+            tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
+            tracker.plot_state(file_name=os.path.join(fig_path, 'states{}'.format(k)))
+            tracker.plot_mode(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
+            tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
+            tracker.plot_para(file_name=os.path.join(fig_path, 'paras{}'.format(k)))
+            tracker.evaluate_modes(ref_mode)
+            tracker.evaluate_states(ref_state)
