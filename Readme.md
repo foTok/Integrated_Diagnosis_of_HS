@@ -35,3 +35,5 @@ Res ---> CNN ---> GRU ---> FC ---> magnitude
 Res ---> CNN ---> GRU ---> FC ---> magnitude
 # Variance Analysis
 Test if the estimated magnitudes in the last two windows come from the same distribution.
+
+Going to reoganize the code. Release 1.0
