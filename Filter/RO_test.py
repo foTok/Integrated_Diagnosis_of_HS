@@ -5,6 +5,7 @@ import os
 import sys
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,parentdir)
+import torch
 import numpy as np
 import argparse
 import logging
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     state_sigma[-1] = 1
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
 
+    torch.no_grad()
     ro = RO(si)
     hsw = hs_system_wrapper(ro, state_sigma, obs_sigma)
     logging.basicConfig(filename='log\\log.txt', level=logging.INFO)
