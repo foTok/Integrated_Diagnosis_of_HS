@@ -197,3 +197,91 @@ def resample(particles, N=None):
         ptc.set_weigth(1/N)
         new_partiles.append(ptc)
     return new_partiles
+
+class particle:
+    '''
+    a particle contains continuous state nad weight
+    '''
+    def __init__(self, state, weight=1):
+        self.state = state
+        self.weight = weight
+
+    def set_state(self, state):
+        '''
+        set state values
+        '''
+        self.state = state
+
+    def set_weigth(self, weight):
+        self.weight = weight
+
+    def clone(self):
+        pct = particle(self.state, self.weight)
+        return pct
+
+class hybrid_particle:
+    def __init__(self, mode=None, state=None, weight=None):
+        self.mode = mode
+        self.state = state
+        self.weight = weight
+
+    def clone(self, mode, state, weight):
+        return hybrid_particle(mode, state, weight)
+
+class hs_system_wrapper:
+    '''
+    def the interface of hs_system for filter
+    '''
+    def __init__(self, hs, state_sigma, obs_sigma):
+        self.hs = hs
+        self.step_len = hs.step_len
+        self.state_sigma = state_sigma # np.array
+        self.obs_sigma = obs_sigma     # np.array
+
+    def para_faults(self):
+        return type(self.hs).f_parameters
+
+    def mode_names(self):
+        return type(self.hs).modes
+
+    def reset_state(self, mode_i, mode_ip1, state):
+        return self.hs.reset_state(mode_i, mode_ip1, state)
+
+    def state_step(self, mode_ip1, state_i, fault_parameters):
+        return self.hs.state_step(mode_ip1, state_i, fault_parameters)
+
+    def output(self, mode, states, output_names=None):
+        if output_names is None:
+            return self.hs.output(mode, states)
+        else:
+            return self.hs.output(mode, states, output_names)
+
+    def plot_states(self, states, file_name=None):
+        if file_name is None:
+            self.hs.plot_states(states)
+        else:
+            self.hs.plot_states(states, file_name)
+
+    def plot_modes(self, modes, file_name=None):
+        if file_name is None:
+            self.hs.plot_modes(modes)
+        else:
+            self.hs.plot_modes(modes, file_name)
+
+    def plot_res(self, res, file_name=None):
+        if file_name is None:
+            self.hs.plot_res(res)
+        else:
+            self.hs.plot_res(res, file_name)
+
+    def plot_Z(self, Z, file_name=None):
+        if file_name is None:
+            self.hs.plot_Z(Z)
+        else:
+            self.hs.plot_Z(Z, file_name)
+
+    def plot_paras(self, paras, file_name=None):
+        if file_name is None:
+            self.hs.plot_paras(paras)
+        else:
+            self.hs.plot_paras(paras, file_name)

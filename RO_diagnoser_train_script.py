@@ -2,10 +2,6 @@
 The identifier of RO systems. Compared with RO_identifier.py, the outputs are different.
 '''
 import os
-import sys
-parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-this_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0,parentdir)
 import torch
 import argparse
 import torch.optim as optim

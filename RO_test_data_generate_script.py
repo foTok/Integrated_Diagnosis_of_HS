@@ -2,9 +2,6 @@
 This script is used to generate data for training.
 '''
 import os
-import sys
-rootdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0,rootdir)
 import numpy as np
 import progressbar
 import argparse

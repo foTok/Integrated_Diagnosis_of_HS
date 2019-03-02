@@ -2,7 +2,6 @@
 This script is used to generate data for training.
 '''
 import os
-import sys
 import numpy as np
 import progressbar
 import argparse

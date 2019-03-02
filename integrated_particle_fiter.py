@@ -2,9 +2,6 @@
 This document implementes some particle filter algorithms.
 '''
 import os
-import sys
-rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
-sys.path.insert(0, rootdir)
 import torch
 import progressbar
 import logging
@@ -22,97 +19,18 @@ from utilities import dis_sample
 from utilities import exp_confidence
 from utilities import normalize
 from utilities import resample
+from utilities import particle
+from utilities import hs_system_wrapper
 
-
-class hybrid_particle:
-    '''
-    a hybrid particle contains both discrete modes and continuous states
-    '''
-    def __init__(self, state, weight=1):
-        self.state = state
-        self.weight = weight
-
-    def set_state(self, state):
-        '''
-        set state values
-        '''
-        self.state = state
-
-    def set_weigth(self, weight):
-        self.weight = weight
-
-    def clone(self):
-        pct = hybrid_particle(self.state,\
-                              self.weight)
-        return pct
-
-class hs_system_wrapper:
-    '''
-    def the interface of hs_system for filter
-    '''
-    def __init__(self, hs, state_sigma, obs_sigma):
-        self.hs = hs
-        self.step_len = hs.step_len
-        self.state_sigma = state_sigma # np.array
-        self.obs_sigma = obs_sigma     # np.array
-
-    def para_faults(self):
-        return type(self.hs).f_parameters
-
-    def mode_names(self):
-        return type(self.hs).modes
-
-    def reset_state(self, mode_i, mode_ip1, state):
-        return self.hs.reset_state(mode_i, mode_ip1, state)
-
-    def state_step(self, mode_ip1, state_i, fault_parameters):
-        return self.hs.state_step(mode_ip1, state_i, fault_parameters)
-
-    def output(self, mode, states, output_names=None):
-        if output_names is None:
-            return self.hs.output(mode, states)
-        else:
-            return self.hs.output(mode, states, output_names)
-
-    def plot_states(self, states, file_name=None):
-        if file_name is None:
-            self.hs.plot_states(states)
-        else:
-            self.hs.plot_states(states, file_name)
-
-    def plot_modes(self, modes, file_name=None):
-        if file_name is None:
-            self.hs.plot_modes(modes)
-        else:
-            self.hs.plot_modes(modes, file_name)
-
-    def plot_res(self, res, file_name=None):
-        if file_name is None:
-            self.hs.plot_res(res)
-        else:
-            self.hs.plot_res(res, file_name)
-
-    def plot_Z(self, Z, file_name=None):
-        if file_name is None:
-            self.hs.plot_Z(Z)
-        else:
-            self.hs.plot_Z(Z, file_name)
-
-    def plot_paras(self, paras, file_name=None):
-        if file_name is None:
-            self.hs.plot_paras(paras)
-        else:
-            self.hs.plot_paras(paras, file_name)
-
-class hpf: # hybrid particle filter
-    def __init__(self, hsw, conf=exp_confidence):
+class ipf:
+    def __init__(self, hs, state_sigma, obs_sigma, conf=exp_confidence):
         self.N = None
         self.obs = None
         self.mode0 = None
         self.state_mu0 = None
         self.state_sigma0 = None
         self.confidence = conf
-        self.hsw = hsw # hs_system_wrapper
+        self.hsw = hs_system_wrapper(hs, state_sigma, obs_sigma)
         self.mode_detector = None
         self.pf_isolator = None
         self.pf_identifier = []
@@ -211,7 +129,7 @@ class hpf: # hybrid particle filter
         disturbance = np.random.randn(N, len(state_mu))*state_sigma
         for i in range(N):
             state = state_mu + disturbance[i]
-            ptc = hybrid_particle(state, weight=1/N)
+            ptc = particle(state, weight=1/N)
             particles.append(ptc)
         return particles
 
@@ -243,7 +161,7 @@ class hpf: # hybrid particle filter
 
     def step(self, particles, obs, mode):
         '''
-        particles: hybrid_particle list
+        particles: particle list
         '''
         self.t += self.hsw.step_len
         mode_i0 = self.mode0 if not self.state else self.mode[len(self.state)-1]
