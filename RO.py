@@ -23,7 +23,7 @@ class RO:
     p_fp    = 1.0 # N/m^2
     p_rp    = 160.0 # N/m^2
     # modes
-    modes = {'mode':['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']}
+    modes = {'mode':['mode1', 'mode2', 'mode3', 's_mode1', 's_mode2', 's_mode3']}
     # states
     states = ['q_fp', 'p_tr', 'q_rp', 'p_memb', 'e_Cbrine', 'e_Ck']
     # outputs
@@ -33,7 +33,7 @@ class RO:
     # fault parameters
     f_parameters = ['f_f', 'f_r', 'f_m']
     # labels
-    labels = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m']
+    labels = ['mode1', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r', 'f_m']
     def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory
@@ -41,8 +41,8 @@ class RO:
         self.states = []
         self.outputs = []
         self.state_disturb = None
-        self.t = step_len
-        self.s_t = step_len
+        self.t = 0
+        self.s_t = 0
 
     def set_state_disturb(self, disturb): # important interface
         self.state_disturb = disturb
@@ -50,11 +50,11 @@ class RO:
     def fault_parameters(self, t, mode, fault_type=None, fault_time=None, fault_magnitude=None): # important interface
         if (fault_time is None) or (t <= fault_time): # no fault
             return mode, [0, 0, 0]
-        if fault_type=='s_normal':
+        if fault_type=='s_mode1':
             return 3, [0, 0, 0]
-        elif fault_type=='s_pressure':
+        elif fault_type=='s_mode2':
             return 4, [0, 0, 0]
-        elif fault_type=='s_reverse':
+        elif fault_type=='s_mode3':
             return 5, [0, 0, 0]
         elif fault_type=='f_f':
             return mode, [fault_magnitude, 0, 0]
@@ -68,10 +68,12 @@ class RO:
     def run(self, init_mode=0, init_state=[0, 0, 0, 0, 0, 0], t=0, fault_type=None, fault_time=None, fault_magnitude=None): # importance interface
         mode_i = init_mode
         state_i = init_state
-        while self.t < t:
+        while self.t < t-(self.step_len/10): # avoid numeric problem
+            tmp_mode = mode_i
             self.time_step()
             mode_i, para_fault = self.fault_parameters(self.t, mode_i, fault_type, fault_time, fault_magnitude)
             mode_i, state_i = self.mode_step(mode_i, state_i) # mode +1
+            state_i = self.reset_state(tmp_mode, mode_i, state_i)
             state_i = self.state_step(mode_i, state_i, para_fault) # state +1
             output_i = self.output(mode_i, state_i) # output
             self.modes.append(mode_i)
@@ -79,7 +81,7 @@ class RO:
             self.outputs.append(output_i)
 
     def reset_state(self, mode_i, mode_ip1, state_i):
-        if mode_i==2 and mode_ip1==0:
+        if (mode_i%3 != 0) and (mode_ip1%3 == 0):
             state_i = state_i[:]
             state_i[4], state_i[5] = 0, 0
         return state_i
@@ -87,24 +89,31 @@ class RO:
     def time_step(self):
         self.t += self.step_len
 
-    def mode_step(self, mode_i, state_i): # important interface
-        if self.t - self.s_t < 33.0:
-            return mode_i, state_i
-        mode_ip1 = mode_i
-        state_ip1 = state_i[:]
-        if mode_i == 0:
-            mode_ip1 = 1
-            self.s_t = self.t
-        elif mode_i == 1:
-            mode_ip1 = 2
-            self.s_t = self.t
-        elif mode_i == 2:
-            mode_ip1 = 0
-            state_ip1[4], state_ip1[5] = 0, 0
-            self.s_t = self.t
+    def stochastic_mode_step(self, mode_i, state_i):
+        f = 0.01
+        n = 1 - 2*f
+        if mode_i==0:
+            return [n, f, f]
+        elif mode_i==1:
+            return [f, n, f]
+        elif mode_i==2:
+            return [f, f, n]
         else:
-            pass # keep the mode
-        return mode_ip1, state_ip1
+            raise RuntimeError('Unknown Mode.')
+
+    def mode_step(self, mode_i, state_i): # important interface
+        mode_ip1 = mode_i
+        if self.t - self.s_t > 33.0:
+            self.s_t = self.t
+            if mode_i == 0:
+                mode_ip1 = 1
+            elif mode_i == 1:
+                mode_ip1 = 2
+            elif mode_i == 2:
+                mode_ip1 = 0
+            else:
+                pass # keep the mode       
+        return mode_ip1, state_i
 
     def state_step(self, mode_ip1, state_i, fault_parameters): # important interface
         if (mode_ip1 % 3) == 0:
@@ -231,7 +240,7 @@ class RO:
 
     def plot_modes(self, modes=None, file_name=None): # important interface
         data = self.np_modes() if modes is None else modes
-        mode_labels = ['normal', 'pressure', 'reverse', 's_normal', 's_pressure', 's_reverse']
+        mode_labels = ['mode1', 'mode2', 'mode3', 's_mode1', 's_mode2', 's_mode3']
         max_mode = int(max(data))
         y_ticks_pos = range(max_mode+1)
         y_ticks_label = mode_labels[:max_mode+1]

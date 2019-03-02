@@ -247,6 +247,9 @@ class hs_system_wrapper:
     def reset_state(self, mode_i, mode_ip1, state):
         return self.hs.reset_state(mode_i, mode_ip1, state)
 
+    def stochastic_mode_step(self, mode, state):
+        return self.hs.stochastic_mode_step(mode, state)
+
     def state_step(self, mode_ip1, state_i, fault_parameters):
         return self.hs.state_step(mode_ip1, state_i, fault_parameters)
 
