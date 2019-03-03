@@ -8,8 +8,9 @@ from utilities import hybrid_particle
 from utilities import normalize
 from utilities import resample
 from utilities import smooth
+from utilities import dis_sample
 
-class bpf: # bank particle filter
+class hpf: # hybrid particle filter
     def __init__(self, hs, state_sigma, obs_sigma, conf=exp_confidence):
         self.N = None
         self.obs = None
@@ -25,10 +26,6 @@ class bpf: # bank particle filter
         self.state = []
         self.t = 0 # time stamp
         self.mode_num = 0
-        self.blend_particle = False
-
-    def set_blend(self, blend):
-        self.blend_particle = blend
 
     def set_mode_num(self, mode_num):
         self.mode_num = mode_num
@@ -49,7 +46,10 @@ class bpf: # bank particle filter
         particle = self.tracjectory[-1] if self.tracjectory else self.init_particle()
         return particle
 
-    def step_particle(self, p, obs, mode_i0, mode):
+    def step_particle(self, p, obs):
+        mode_i0 = p.mode
+        mode_dis = self.hsw.stochastic_mode_step(p.mode, p.state)
+        mode = dis_sample(mode_dis)[0]
         p = p.clone()
         # predict state
         state = self.hsw.reset_state(mode_i0, mode, p.state)
@@ -70,20 +70,10 @@ class bpf: # bank particle filter
 
     def step(self, particle, obs):
         self.t += self.hsw.step_len
-        mode_i0 = self.mode0 if not self.state else self.mode[len(self.state)-1]
-        particle_ip1 = {}
+        particle_ip1 = []
         for ptc in particle:
-            for mode in range(self.mode_num):
-                p = self.step_particle(ptc, obs, mode_i0, mode)
-                if mode not in particle_ip1:
-                    particle_ip1[mode] = []
-                particle_ip1[mode].append(p)
-        if self.blend_particle:
-            particle_ip1 = [p for m in particle_ip1 for p in particle_ip1[m]]
-        else:
-            weight = [sum([p.weight for p in particle_ip1[m]]) for m in particle_ip1]
-            m = weight.index(max(weight))
-            particle_ip1 = particle_ip1[m]
+            p = self.step_particle(ptc, obs)
+            particle_ip1.append(p)
         normalize(particle_ip1)
         re_particle_ip1 = resample(particle_ip1, self.N)
         ave_state = sum([p.weight*p.state for p in re_particle_ip1])
@@ -107,6 +97,7 @@ class bpf: # bank particle filter
                     self.step(particle, obs)
                     bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                     i += 1
+            self.mode = smooth(np.array(self.mode), 50)
 
     def plot_state(self, file_name=None):
         data = np.array(self.state)

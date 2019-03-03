@@ -207,9 +207,6 @@ class particle:
         self.weight = weight
 
     def set_state(self, state):
-        '''
-        set state values
-        '''
         self.state = state
 
     def set_weigth(self, weight):
@@ -225,8 +222,17 @@ class hybrid_particle:
         self.state = state
         self.weight = weight
 
-    def clone(self, mode, state, weight):
-        return hybrid_particle(mode, state, weight)
+    def set_mode(self, mode):
+        self.mode = mode
+
+    def set_state(self, state):
+        self.state = state
+
+    def set_weigth(self, weight):
+        self.weight = weight
+
+    def clone(self):
+        return hybrid_particle(self.mode, self.state, self.weight)
 
 class hs_system_wrapper:
     '''

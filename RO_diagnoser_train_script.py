@@ -46,8 +46,8 @@ def sample_data(data_mana, batch, normal_proportion, snr_or_pro, mask):
     r = data_mana.sample_all(size=batch, \
                     normal_proportion=normal_proportion, \
                     snr_or_pro=snr_or_pro,\
-                    norm_o=np.array([1,1,1,10,10e9]), \
-                    norm_s=np.array([1,1,1,10,10e9,10e8]),\
+                    norm_o=np.array([1,1,1,10,10e8]), \
+                    norm_s=np.array([1,1,1,10,10e8,10e8]),\
                     mask=mask,\
                     res=True)
     return r
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         os.makedirs(save_path)
     
     epoch = 4000
-    batch = 7
+    batch = 7 # 7 is used to debug. When train it on cloud, set it as 20 or 40.
     # data manager
     si = 0.01
     obs_snr = 20

@@ -31,9 +31,10 @@ if __name__ == "__main__":
                        's_pressure':[round(uniform(110, 115), 2),  round(uniform(170, 175), 2)], \
                        's_reverse':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)], \
                        'f_f':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2),  round(uniform(170, 175), 2)], \
-                       'f_r':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)]}
+                       'f_r':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)], \
+                       'f_m':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2),  round(uniform(170, 175), 2)],}
     dis_fault = ['s_normal', 's_pressure', 's_reverse']
-    cont_fault = ['f_f', 'f_r']
+    cont_fault = ['f_f', 'f_r', 'f_m']
     fault_magnitude_list = [0.16, 0.26, 0.36]
 
     if args.fault_type=='norm':
