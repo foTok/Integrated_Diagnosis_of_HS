@@ -180,7 +180,8 @@ def exp_confidence(x, df=None):
 
 def normalize(particles):
     w = [ptc.weight for ptc in particles]
-    w = 0 if max(w)<0.20/len(particles) else sum(w) # 0.01 ==> 0.1
+    print('sum(w)={}'.format(sum(w)))
+    w = 0 if sum(w)<0.05 else sum(w)
     for ptc in particles:
         ptc.weight = (ptc.weight / w) if w!=0 else 1/len(particles)
 

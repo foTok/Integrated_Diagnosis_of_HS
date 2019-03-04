@@ -12,6 +12,7 @@ from torch.nn import CrossEntropyLoss
 from cnn_gru_diagnoser import cnn_gru_mode_detector
 from cnn_gru_diagnoser import cnn_gru_pf_isolator
 from cnn_gru_diagnoser import cnn_gru_pf_identifier
+from cnn_gru_obs_model import cnn_gru_obs_model
 from data_manager import data_manager
 from utilities import np2tensor
 
@@ -71,7 +72,7 @@ def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
     for i in range(epoch):
         optimizer.zero_grad()
 
-        x, m, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask, res=res)
+        x, m, state, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask, res=res)
         m = m%3
         y_head = diagnoser(np2tensor(x, use_cuda))
 
@@ -84,6 +85,8 @@ def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
             index = np.sum(fp_vec*np.array([0, 1, 2]))
             y = fp_value[:, :, [index]]
             loss = 400*mse(y_head, y, use_cuda)
+        elif model_type=='obs':
+            loss = 400*mse(y_head, state, use_cuda)
         else:
             raise RuntimeError('Unknown Type.')
 
@@ -109,10 +112,15 @@ def get_model(t, use_cuda=True):
                         num_layers=2, hidden_size=64, dropout=0.5, \
                         fc_size=[64, 32], pf_size=3)
     elif t=='identifier':
-        model = cnn_gru_pf_identifier( x_size=5,\
+        model = cnn_gru_pf_identifier(x_size=5,\
                            cnn_feature_map=[32, 64, 128, 64], cnn_kernel_size=[64, 32, 16, 8],\
                            num_layers=2, hidden_size=64, dropout=0.5, \
                            fc_size=[64, 32])
+    elif t=='obs':
+        model = cnn_gru_obs_model(x_size=5, \
+                            cnn_feature_map=[32, 64, 128, 64], cnn_kernel_size=[64, 32, 16, 8],\
+                            num_layers=2, hidden_size=64, dropout=0.5, \
+                            fc_size=[64, 32], o_size=6)
     else:
         raise RuntimeError('Unknown Type.')
     if torch.cuda.is_available() and use_cuda:
@@ -136,9 +144,10 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--data', type=str, help='choose the key values.')
     parser.add_argument('-t', '--type', type=str, help='model type.')
     parser.add_argument('-o', '--output', type=str, help='choose output names.')
+    parser.add_argument('-r', '--res', type=str, help='residual.')
     args = parser.parse_args()
 
-    use_cuda, res = False, True
+    use_cuda, res = False, (args.res is None)
     data_set, model_name = args.data, args.output
     # mask
     if args.type=='detector':# mode detector
@@ -149,7 +158,7 @@ if __name__ == "__main__":
     elif args.type=='isolator': # fault parameter isolator
         model = get_model('isolator', use_cuda)
         mask = ['s_mode1', 's_mode2', 's_mode3']
-        normal_proportion = 0.05
+        normal_proportion = 0.625
     elif args.type=='f_f':
         model = get_model('identifier', use_cuda)
         mask = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_r', 'f_m']
@@ -162,6 +171,11 @@ if __name__ == "__main__":
         model = get_model('identifier', use_cuda)
         mask = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r']
         normal_proportion = 0
+    elif args.type=='obs':
+        model = get_model('obs', use_cuda)
+        mask = []
+        normal_proportion = 0.1
+        res = False
     else:
         raise RuntimeError('Unknown Type.')
 
@@ -169,7 +183,7 @@ if __name__ == "__main__":
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     
-    epoch = 1000
+    epoch = 2000
     batch = 7 # 7 is used to debug. When train it on cloud, set it as 20 or 40.
     # data manager
     si = 0.01

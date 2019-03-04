@@ -17,13 +17,14 @@ from utilities import window_smooth
 from utilities import index
 from utilities import dis_sample
 from utilities import exp_confidence
+from utilities import chi2_confidence
 from utilities import normalize
 from utilities import resample
 from utilities import particle
 from utilities import hs_system_wrapper
 
 class ipf:
-    def __init__(self, hs, state_sigma, obs_sigma, conf=exp_confidence):
+    def __init__(self, hs, state_sigma, obs_sigma, conf=chi2_confidence):
         self.N = None
         self.obs = None
         self.mode0 = None

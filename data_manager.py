@@ -239,7 +239,7 @@ class data_manager:
         fault_num = label_size if 'normal' not in the_labels else label_size-1
         fault_size = int(size*(1-normal_proportion)/fault_num)
         normal_size = int(size - fault_size*fault_num) # make sure it is an int
-        x, m, fp_mode, fp_value = [], [], [], []
+        x, m, state, fp_mode, fp_value = [], [], [], [], []
         for label in the_labels:
             # 1. find all indexes with this label
             indexes = []
@@ -254,6 +254,7 @@ class data_manager:
                 term = self.cfg.terms[i]
                 outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o, output_names=output_names)
                 modes_i = self.select_modes(i)
+                states_i = self.select_states(i, norm=norm_s)
                 # fault parameters
                 p_mode = np.zeros(len(outputs_i))
                 p_value = np.zeros((len(outputs_i), len(self.cfg.fault_para_names)))
@@ -274,10 +275,11 @@ class data_manager:
                 # store them
                 x.append(outputs_i)
                 m.append(modes_i.reshape(-1))
+                state.append(states_i)
                 fp_mode.append(p_mode)
                 fp_value.append(p_value)
-        x, m, fp_mode, fp_value = np.array(x), np.array(m), np.array(fp_mode), np.array(fp_value)
-        return x, m, fp_mode, fp_value
+        x, m, state, fp_mode, fp_value = np.array(x), np.array(m), np.array(state), np.array(fp_mode), np.array(fp_value)
+        return x, m, state, fp_mode, fp_value
 
     def np2target(self, y):
         '''
