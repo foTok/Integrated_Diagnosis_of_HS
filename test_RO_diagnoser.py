@@ -72,6 +72,7 @@ si = 0.01
 # test data set
 obs_snr = 20
 obs_scale =np.array([1, 1, 1, 10, 10e8])
+state_scale =np.array([1, 1, 1, 10, 10e8, 10e8])
 data_cfg = '{}/RO.cfg'.format(args.data_set)
 data_mana = data_manager(data_cfg, si)
 # diagnoser
@@ -142,5 +143,9 @@ for i in range(start, len(data_mana.data)):
         plt.close()
     elif args.type=='f_r':
         pass
+    elif args.type=='obs':
+        out = y_head[:, :5]
+        y = out-output_with_noise
+        ro.plot_res(y)
     else:
         raise RuntimeError('Unknown Type.')

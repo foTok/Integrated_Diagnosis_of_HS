@@ -86,7 +86,7 @@ def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
             y = fp_value[:, :, [index]]
             loss = 400*mse(y_head, y, use_cuda)
         elif model_type=='obs':
-            loss = 400*mse(y_head, state, use_cuda)
+            loss = 10*mse(y_head, state, use_cuda)
         else:
             raise RuntimeError('Unknown Type.')
 

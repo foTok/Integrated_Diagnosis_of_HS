@@ -229,6 +229,7 @@ class data_manager:
         '''
         # normal output
         output_n = self.select_outputs(0, norm=norm_o, output_names=output_names)
+        state_n = self.select_states(0, norm=norm_s)
         # mask labels
         the_labels = []
         for l in self.labels:
@@ -254,7 +255,7 @@ class data_manager:
                 term = self.cfg.terms[i]
                 outputs_i = self.select_outputs(i, snr_or_pro=snr_or_pro, norm=norm_o, output_names=output_names)
                 modes_i = self.select_modes(i)
-                states_i = self.select_states(i, norm=norm_s)
+                states_i = self.select_states(i, norm=norm_s) if term.fault_type not in self.cfg.fault_para_names else state_n
                 # fault parameters
                 p_mode = np.zeros(len(outputs_i))
                 p_value = np.zeros((len(outputs_i), len(self.cfg.fault_para_names)))
@@ -275,7 +276,7 @@ class data_manager:
                 # store them
                 x.append(outputs_i)
                 m.append(modes_i.reshape(-1))
-                state.append(states_i)
+                state.append(states_i) # the state_i ignore parameter fault
                 fp_mode.append(p_mode)
                 fp_value.append(p_value)
         x, m, state, fp_mode, fp_value = np.array(x), np.array(m), np.array(state), np.array(fp_mode), np.array(fp_value)

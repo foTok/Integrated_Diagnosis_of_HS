@@ -32,10 +32,12 @@ if __name__ == "__main__":
                        's_mode3':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)], \
                        'f_f':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2),  round(uniform(170, 175), 2)], \
                        'f_r':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)], \
-                       'f_m':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2),  round(uniform(170, 175), 2)],}
+                       'f_m':[round(uniform(110, 115), 2),  round(uniform(140, 145), 2)]}
     dis_fault = ['s_mode1', 's_mode2', 's_mode3']
     cont_fault = ['f_f', 'f_r', 'f_m']
-    fault_magnitude_list = [0.16, 0.26, 0.36]
+    fault_magnitude_list = {'f_f':[0.16, 0.26, 0.36], \
+                            'f_r':[0.16, 0.26, 0.36], \
+                            'f_m':[0.26, 0.36]}
 
     if args.fault_type=='norm':
         file_num = 1
@@ -65,13 +67,13 @@ if __name__ == "__main__":
     else:
         i = -1 # file index
         fault_type_list = dis_fault if args.fault_type=='dis' else cont_fault
-        fault_magnitude_list = [None] if args.fault_type=='dis' else fault_magnitude_list
         cfg_name = os.path.join(out_dir, 'RO.cfg')
         the_cfg = cfg(RO.modes, RO.states, RO.outputs, RO.variables, RO.f_parameters, RO.labels, sample_int)
         with progressbar.ProgressBar(max_value=100) as bar:
             for fault_type in fault_type_list:
+                magnitude_list = [None] if args.fault_type=='dis' else fault_magnitude_list[fault_type]
                 for fault_time in fault_time_list[fault_type]:
-                    for fault_magnitude in fault_magnitude_list:
+                    for fault_magnitude in magnitude_list:
                         i += 1
                         file_name = os.path.join(out_dir, str(i))
                         msg = 'file: {}, fault_type: {}, fault_time: {}, fault_managnitude: {}.\n'.format(i, fault_type, fault_time, fault_magnitude)
