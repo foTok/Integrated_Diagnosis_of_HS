@@ -54,12 +54,13 @@ parser.add_argument('-m', '--model_name', type=str, help='model name')
 parser.add_argument('-d', '--data_set', type=str, help='data_set')
 parser.add_argument('-t', '--type', type=str, help='model type.')
 parser.add_argument('-r', '--res', type=str, help='if sample residual.')
+parser.add_argument('-s', '--start', type=int, help='start index.')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 args = parser.parse_args()
 
 res = False if args.res is None else True
 model_name = args.model_name
-this_path = os.path.dirname(os.path.abspath(__file__))
+start = 0 if args.start is None else args.start
 log_path = 'log/eval/{}'.format(args.output)
 
 # set log path
@@ -90,7 +91,7 @@ ro = RO(si)
 msg = 'evaluate model {}.'.format(model_name)
 log_msg(msg)
 
-for i in range(len(data_mana.data)):
+for i in range(start, len(data_mana.data)):
     msg = 'evaluating data {}.'.format(i)
     log_msg(msg)
     _, _, _, msg = data_mana.get_info(i, prt=False)

@@ -21,6 +21,7 @@ parser.add_argument('-t', '--test', type=str, help='test set name')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n', '--num', type=int, help='particle number')
+parser.add_argument('-s', '--start', type=int, help='start index')
 args = parser.parse_args()
 
 # settings
@@ -31,6 +32,7 @@ obs_scale =np.array([1, 1, 1, 10, 10e8])
 repeat = 10 if args.repeat is None else args.repeat
 N = 50 if args.num is None else args.num
 test = 'test' if args.test is None else args.test
+start = 0 if args.start is None else args.start
 mode_detector = 'model/mode_detector'
 pf_isolator = 'model/pf_isolator'
 f_f_identifier = 'model/f_f_identifier'
@@ -45,7 +47,7 @@ if not os.path.isdir(log_path):
 logging.basicConfig(filename=os.path.join(log_path, 'log.txt'), level=logging.INFO)
 
 for k in range(repeat):
-    for i in range(len(data_mana.data)):
+    for i in range(start, len(data_mana.data)):
         msg = '\n************Track the {}th observation, {}th time.************'.format(i, k)
         print(msg)
         logging.info(msg)

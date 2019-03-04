@@ -87,7 +87,7 @@ class ipf:
         n_obs = self.obs / self.obs_scale
         t_len, o_len = n_obs.shape
         obs = n_obs.reshape(1, t_len, o_len)
-        obs = np2tensor(obs)
+        obs = np2tensor(obs, use_cuda=False)
         mode = self.mode_detector(obs)
         mode = mode.detach().numpy()[0]
         mode = np.argmax(mode, axis=1)
