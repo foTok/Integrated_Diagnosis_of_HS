@@ -42,14 +42,14 @@ def new_data_manager(cfg, si):
     data_mana = data_manager(cfg, si)
     return data_mana
 
-def sample_data(data_mana, batch, normal_proportion, snr_or_pro, mask):
+def sample_data(data_mana, batch, normal_proportion, snr_or_pro, mask, res):
     r = data_mana.sample_all(size=batch, \
                     normal_proportion=normal_proportion, \
                     snr_or_pro=snr_or_pro,\
                     norm_o=np.array([1,1,1,10,10e8]), \
                     norm_s=np.array([1,1,1,10,10e8,10e8]),\
                     mask=mask,\
-                    res=True)
+                    res=res)
     return r
 
 def show_loss(i, loss, running_loss):
@@ -64,14 +64,14 @@ def show_loss(i, loss, running_loss):
     return running_loss
 
 def train(save_path, model_name, model_type, epoch, batch, normal_proportion, \
-       data_mana, diagnoser, optimizer, obs_snr, mask, use_cuda):
+       data_mana, diagnoser, optimizer, obs_snr, mask, use_cuda, res):
     train_loss = []
     running_loss = 0
 
     for i in range(epoch):
         optimizer.zero_grad()
 
-        x, m, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask)
+        x, m, fp_mode, fp_value = sample_data(data_mana, batch, normal_proportion=normal_proportion, snr_or_pro=obs_snr, mask=mask, res=res)
         m = m%3
         y_head = diagnoser(np2tensor(x, use_cuda))
 
@@ -138,29 +138,29 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, help='choose output names.')
     args = parser.parse_args()
 
-    use_cuda = True
-    data_set = args.data
-    model_name = args.output
+    use_cuda, res = False, True
+    data_set, model_name = args.data, args.output
     # mask
     if args.type=='detector':# mode detector
         model = get_model('detector', use_cuda)
         mask = []
         normal_proportion = 0.1
+        res = False
     elif args.type=='isolator': # fault parameter isolator
         model = get_model('isolator', use_cuda)
-        mask = ['s_normal', 's_pressure', 's_reverse']
+        mask = ['s_mode1', 's_mode2', 's_mode3']
         normal_proportion = 0.05
     elif args.type=='f_f':
         model = get_model('identifier', use_cuda)
-        mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_r', 'f_m']
+        mask = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_r', 'f_m']
         normal_proportion = 0
     elif args.type=='f_r':
         model = get_model('identifier', use_cuda)
-        mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_m']
+        mask = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_m']
         normal_proportion = 0
     elif args.type=='f_m':
         model = get_model('identifier', use_cuda)
-        mask = ['normal', 's_normal', 's_pressure', 's_reverse', 'f_f', 'f_r']
+        mask = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r']
         normal_proportion = 0
     else:
         raise RuntimeError('Unknown Type.')
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
     
-    epoch = 4000
+    epoch = 1000
     batch = 7 # 7 is used to debug. When train it on cloud, set it as 20 or 40.
     # data manager
     si = 0.01
@@ -182,4 +182,4 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)
     # train
     train(save_path, model_name, args.type, epoch, batch, normal_proportion, \
-          data_mana, model, optimizer, obs_snr, mask, use_cuda)
+          data_mana, model, optimizer, obs_snr, mask, use_cuda, res)
