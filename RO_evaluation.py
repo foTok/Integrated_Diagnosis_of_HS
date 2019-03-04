@@ -32,13 +32,13 @@ repeat = 10 if args.repeat is None else args.repeat
 N = 50 if args.num is None else args.num
 test = 'test' if args.test is None else args.test
 mode_detector = 'model/mode_detector'
-pf_isolator = 'model/pf_isolator_res'
-f_f_identifier = 'model/f_f_identifier_res'
-f_r_identifier = 'model/f_r_identifier_res'
+pf_isolator = 'model/pf_isolator'
+f_f_identifier = 'model/f_f_identifier'
+f_r_identifier = 'model/f_r_identifier'
 data_cfg = '{}/RO.cfg'.format(test)
 data_mana = data_manager(data_cfg, si)
 # log directory
-log_path = 'log\\RO\\{}'.format(args.output)
+log_path = 'log/RO/{}'.format(args.output)
 if not os.path.isdir(log_path):
     os.makedirs(log_path)
 logging.basicConfig(filename=os.path.join(log_path, 'log.txt'), level=logging.INFO)
