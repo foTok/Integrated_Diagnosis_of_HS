@@ -33,7 +33,7 @@ class RO:
     # fault parameters
     f_parameters = ['f_f', 'f_r', 'f_m']
     # labels
-    labels = ['mode1', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r', 'f_m']
+    labels = ['normal', 's_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r', 'f_m']
     def __init__(self, step_len): # important interface
         self.step_len   = step_len
         # trajectory

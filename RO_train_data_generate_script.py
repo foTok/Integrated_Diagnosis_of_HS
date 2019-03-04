@@ -22,13 +22,13 @@ if __name__ == "__main__":
     key = args.key
     if not os.path.isdir(key):
         os.makedirs(key)
-    fault_time_list = {'s_normal': np.arange(132, 198, 1),\
-               's_pressure': np.arange(66, 132, 1),\
-               's_reverse':np.arange(99, 165, 1),\
+    fault_time_list = {'s_mode1': np.arange(132, 198, 1),\
+               's_mode2': np.arange(66, 132, 1),\
+               's_mode3':np.arange(99, 165, 1),\
                'f_f':np.arange(99, 198, 1),\
                'f_r':np.arange(99, 165, 1),\
                'f_m':np.arange(99, 198, 1)}
-    fault_type_list = ['s_normal', 's_pressure', 's_reverse', 'f_f', 'f_r', 'f_m']
+    fault_type_list = ['s_mode1', 's_mode2', 's_mode3', 'f_f', 'f_r', 'f_m']
     fault_magnitude_list = np.arange(0.05, 0.505, 0.05)
     file_num = 1
     for f in fault_type_list:
