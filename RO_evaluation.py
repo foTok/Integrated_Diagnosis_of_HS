@@ -35,6 +35,7 @@ mode_detector = 'model/mode_detector'
 pf_isolator = 'model/pf_isolator'
 f_f_identifier = 'model/f_f_identifier'
 f_r_identifier = 'model/f_r_identifier'
+f_m_identifier = 'model/f_m_identifier'
 data_cfg = '{}/RO.cfg'.format(test)
 data_mana = data_manager(data_cfg, si)
 # log directory
@@ -67,7 +68,7 @@ for k in range(repeat):
             tracker = ipf(ro, state_sigma, obs_sigma)
             tracker.load_mode_detector(mode_detector)
             tracker.load_pf_isolator(pf_isolator)
-            tracker.load_identifier([f_f_identifier, f_r_identifier])
+            tracker.load_identifier([f_f_identifier, f_r_identifier, f_m_identifier])
             tracker.set_scale(obs_scale)
             tracker.log_msg(msg)
             tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
