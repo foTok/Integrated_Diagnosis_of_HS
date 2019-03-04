@@ -2,7 +2,9 @@
 __pycache__
 debug
 train*
-test*
+test_c
+test_d
+test_n
 data
 eval
 Pic
