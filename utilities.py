@@ -182,7 +182,7 @@ def normalize(particles):
     w = [ptc.weight for ptc in particles]
     sum_w =  sum(w)
     # print('sum_w={}'.format(sum_w), flush=True)
-    thresh = 0.50
+    thresh = 0.250
     w = 0 if sum_w<thresh else sum_w
     state = np.mean([ptc.state for ptc in particles], 0) if sum_w<thresh else None
     for ptc in particles:
