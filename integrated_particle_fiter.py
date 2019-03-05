@@ -225,12 +225,13 @@ class ipf:
     def find_fault_time(self, window1=1, window2=4):
         window_len1 = int(window1/self.hsw.step_len)
         window_len2 = int(window2/self.hsw.step_len)
-        for i in range(window_len1, len(self.para_fault_id)):
-            if (np.array(self.para_fault_id[i-window_len1:i])==0).all() and \
-               (np.array(self.para_fault_id[i:i+window_len2])!=0).all():
+        para_fault_id = np.array(self.para_fault_id)
+        para_fault_id = smooth(para_fault_id, 100)
+        for i in range(window_len1, len(para_fault_id)):
+            if (np.array(para_fault_id[i-window_len1:i])==0).all() and \
+               (np.array(para_fault_id[i:i+window_len2])!=0).all():
                return (i+1)*self.hsw.step_len
         return 0
-
 
     def track(self, mode, state_mu, state_sigma, obs, N):
         msg = 'Tracking hybrid states...'
