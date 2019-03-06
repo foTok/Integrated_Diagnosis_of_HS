@@ -23,6 +23,7 @@ parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n', '--num', type=int, help='particle number')
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-m', '--mode', type=str, help='filter mode')
+parser.add_argument('-c', '--conf', type=float, help='obs confidence')
 args = parser.parse_args()
 
 # settings
@@ -70,6 +71,7 @@ for k in range(repeat):
         with torch.no_grad():
             ro = RO(si)
             tracker = ipf(ro, state_sigma, obs_sigma)
+            tracker.set_obs_conf(args.conf)
             tracker.set_filter_mode(filter_mode)
             tracker.load_mode_detector(mode_detector)
             tracker.load_pf_isolator(pf_isolator)
@@ -82,8 +84,8 @@ for k in range(repeat):
             tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
             tracker.plot_para(file_name=os.path.join(fig_path, 'paras{}'.format(k)))
             tracker.plot_Z(file_name=os.path.join(fig_path, 'Z{}'.format(k)))
+            tracker.evaluate_modes(ref_mode)
+            tracker.evaluate_states(ref_state)
             # tracker.plot_Z()
             # tracker.plot_res()
             # tracker.plot_para_fault()
-            tracker.evaluate_modes(ref_mode)
-            tracker.evaluate_states(ref_state)

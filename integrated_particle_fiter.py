@@ -51,6 +51,7 @@ class ipf:
         self.stop_fault_process = False
         self.fault_time = 0
         self.Z = []
+        self.obs_conf = 0.05
         self.filter_mode = 'ann' # {'ann', 'Z', 'pf'}
                                  # ann: default mode, all diagnosis processes are accomplished by ann.
                                  # Z: detect mode by ann but detect fault by Z-test. No fault identification after that.
@@ -58,6 +59,9 @@ class ipf:
 
     def set_filter_mode(self, mode):
         self.filter_mode = mode
+
+    def set_obs_conf(self, conf):
+        self.obs_conf = conf
 
     def set_output_names(self, names):
         self.output_names = names
@@ -186,7 +190,7 @@ class ipf:
             p, r = self.step_particle(ptc, obs, mode_i0, mode)
             particles_ip1.append(p)
             res += r
-        normalize(particles_ip1)
+        normalize(particles_ip1, self.obs_conf)
         re_particles_ip1 = resample(particles_ip1)
         ave_state = self.ave_state(re_particles_ip1)
         self.tracjectory.append(re_particles_ip1)

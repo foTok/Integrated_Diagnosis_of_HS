@@ -4,6 +4,7 @@ import numpy as np
 from collections import Counter
 from utilities import hs_system_wrapper
 from utilities import exp_confidence
+from utilities import chi2_confidence
 from utilities import hybrid_particle
 from utilities import normalize
 from utilities import resample
@@ -25,10 +26,6 @@ class hpf: # hybrid particle filter
         self.mode = []
         self.state = []
         self.t = 0 # time stamp
-        self.mode_num = 0
-
-    def set_mode_num(self, mode_num):
-        self.mode_num = mode_num
 
     def init_particle(self):
         state_mu = self.state_mu0
@@ -74,7 +71,7 @@ class hpf: # hybrid particle filter
         for ptc in particle:
             p = self.step_particle(ptc, obs)
             particle_ip1.append(p)
-        normalize(particle_ip1)
+        normalize(particle_ip1, 0)
         re_particle_ip1 = resample(particle_ip1, self.N)
         ave_state = sum([p.weight*p.state for p in re_particle_ip1])
         max_mode = [p.mode for p in re_particle_ip1]

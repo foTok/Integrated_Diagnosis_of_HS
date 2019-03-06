@@ -1,6 +1,7 @@
 '''
 Test the PF by RO System
 '''
+import os
 import torch
 import numpy as np
 import argparse
@@ -14,14 +15,14 @@ from utilities import obtain_var
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
+    parser.add_argument('-r', '--repeat', type=int, help='repeat time')
     parser.add_argument('-n', '--num', type=int, help='particle number')
     parser.add_argument('-t', '--test', type=str, help='test_set')
-    parser.add_argument('-o', '--out', type=str, help='out directory')
+    parser.add_argument('-o', '--output', type=str, help='out directory')
     args = parser.parse_args()
     mpl.rc('font',family='Times New Roman')
     # read parameters from environment
-    index = 0 if args.index is None else args.index
+    index = 0
     si = 0.01
     process_snr = 45
     obs_snr = 20
@@ -44,14 +45,17 @@ if __name__ == '__main__':
     state_sigma[-1] = 1
     obs_sigma = np.sqrt(obtain_var(output, obs_snr))
 
-    logging.basicConfig(filename='log\\log.txt', level=logging.INFO)
+    log_path = 'log/RO/{}'.format(args.output)
+    if not os.path.isdir(log_path):
+        os.makedirs(log_path)
+    logging.basicConfig(filename=os.path.join(log_path, 'log.txt'), level=logging.INFO)
 
-    ro = RO(si)
-    tracker = hpf(ro, state_sigma, obs_sigma)
-    tracker.set_mode_num(3)
-    tracker.log_msg(msg)
-    tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
-    tracker.plot_state()
-    tracker.plot_mode()
-    tracker.evaluate_modes(ref_mode)
-    tracker.evaluate_states(ref_state)
+    for i in range(args.repeat):
+        ro = RO(si)
+        tracker = hpf(ro, state_sigma, obs_sigma)
+        tracker.log_msg(msg)
+        tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
+        tracker.plot_state(file_name=os.path.join(log_path, 'states{}'.format(i)))
+        tracker.plot_mode(file_name=os.path.join(log_path, 'modes{}'.format(i)))
+        tracker.evaluate_modes(ref_mode)
+        tracker.evaluate_states(ref_state)
