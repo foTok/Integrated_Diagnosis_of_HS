@@ -210,7 +210,7 @@ class ipf:
         '''
         i: the returned value of detect_para_fault
         '''
-        i =  self.detect_para_fault() if abs(self.t - self.latest_sp)>3 else 0
+        i =  self.detect_para_fault()
         self.para_fault_id.append(i)
         if i==0:
             self.para.append(self.fault_para)
