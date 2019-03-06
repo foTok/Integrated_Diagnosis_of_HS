@@ -208,9 +208,10 @@ class particle:
     '''
     a particle contains continuous state nad weight
     '''
-    def __init__(self, state, weight=1):
+    def __init__(self, state, weight=1, para=None):
         self.state = state
         self.weight = weight
+        self.para = para
 
     def set_state(self, state):
         self.state = state
@@ -218,8 +219,11 @@ class particle:
     def set_weigth(self, weight):
         self.weight = weight
 
+    def set_para(self, para):
+        self.para = para
+
     def clone(self):
-        pct = particle(self.state, self.weight)
+        pct = particle(self.state, self.weight, self.para)
         return pct
 
 class hybrid_particle:

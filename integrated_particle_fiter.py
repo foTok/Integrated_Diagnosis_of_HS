@@ -27,6 +27,8 @@ from utilities import Z_test
 class ipf:
     def __init__(self, hs, state_sigma, obs_sigma, conf=chi2_confidence):
         self.N = None
+        self.Nmin = None
+        self.Nmax = None
         self.obs = None
         self.mode0 = None
         self.state_mu0 = None
@@ -39,6 +41,8 @@ class ipf:
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
         self.obs = None
         self.fault_para = np.zeros(len(self.hsw.para_faults()))
+        self.fault_para_sigma = np.ones(len(self.hsw.para_faults()))*0.01
+        self.fault_para_flag = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.mode = None
@@ -62,6 +66,9 @@ class ipf:
 
     def set_obs_conf(self, conf):
         self.obs_conf = conf
+
+    def set_fault_para_sigma(self, sigma):
+        self.fault_para_sigma = sigma
 
     def set_output_names(self, names):
         self.output_names = names
@@ -114,8 +121,12 @@ class ipf:
             return
         window_len = int(verify_window / self.hsw.step_len)
         fault_rate = np.sum(np.array(self.para_fault_id[-2*window_len:])!=0)/(2*window_len)
-        if fault_rate < 0.95:
-            return
+        if self.filter_mode=='pf':
+            if (self.fault_para_flag==0).all():
+                return
+        else:
+            if fault_rate < 0.95:
+                return
         para1 = np.array(self.para[-window_len:])
         para2 = np.array(self.para[-2*window_len:-window_len])
         # add a small number to the first time step to avoid numberic problems.
@@ -127,12 +138,15 @@ class ipf:
         if (p_values > p_thresh).all():
             para_2w = np.array(self.para[-2*window_len:])
             para = np.mean(para_2w, 0)
-            para = np.array([(p if p>0.01 else 0) for p in para])
+            para = np.array([(p if p>0.01 else 0.0) for p in para])
             para_sigma = np.std(para_2w, 0)*(para!=0)/np.sqrt(2*window_len)
             self.fault_para = para
             self.stop_fault_process = True
             self.fault_time = self.find_fault_time()
-            msg = 'A fault occurred at {}s, estimated its magenitude at {}s, fault parameters are mu={}, sigma={}.'\
+            if self.filter_mode=='pf':
+                self.fault_para_flag[:] = 0.0
+                self.N = self.Nmax
+            msg = 'A fault occurred at {}s, estimated its magnitude at {}s, fault parameters are mu={}, sigma={}.'\
                   .format(round(self.fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
             self.log_msg(msg)
 
@@ -149,15 +163,21 @@ class ipf:
         return particles
 
     def step_particle(self, ptc, obs, mode_i0, mode):
-        fault_para = self.fault_para
         p = ptc.clone()
+        # fault para
+        fault_para = self.fault_para if (self.fault_para_flag==0).all() else p.para
+        # add para noise
+        para_noise = np.random.standard_normal(len(fault_para))*self.fault_para_sigma*self.fault_para_flag
+        fault_para += para_noise
+        fault_para = np.clip(fault_para, 0, 1)
+        p.set_para(fault_para) # set para
         # predict state
         state = self.hsw.reset_state(mode_i0, mode, p.state)
         state = self.hsw.state_step(mode, state, fault_para)
         # add process noise
         process_noise = np.random.standard_normal(len(state))*self.hsw.state_sigma
         state += process_noise
-        p.set_state(state)
+        p.set_state(state) # set state
         # compute outputs
         output = self.hsw.output(mode, state, self.output_names)
         # compute Pobs
@@ -165,7 +185,7 @@ class ipf:
         Pobs = self.confidence(np.sum(res**2), len(res))
         # weighted res
         res = p.weight*res
-        p.set_weigth(p.weight*Pobs)
+        p.set_weigth(p.weight*Pobs) # set weight
         return p, res
 
     def step_isolator(self, n_res):
@@ -182,6 +202,7 @@ class ipf:
         particles: particle list
         '''
         self.t += self.hsw.step_len
+        obs_conf = self.obs_conf if (self.fault_para_flag==0).all() else 0.0
         mode_i0 = self.mode0 if not self.state else self.mode[len(self.state)-1]
         self.latest_sp = self.latest_sp if mode_i0==mode else self.t
         particles_ip1 = []
@@ -190,8 +211,8 @@ class ipf:
             p, r = self.step_particle(ptc, obs, mode_i0, mode)
             particles_ip1.append(p)
             res += r
-        normalize(particles_ip1, self.obs_conf)
-        re_particles_ip1 = resample(particles_ip1)
+        normalize(particles_ip1, obs_conf)
+        re_particles_ip1 = resample(particles_ip1, self.N)
         ave_state = self.ave_state(re_particles_ip1)
         self.tracjectory.append(re_particles_ip1)
         self.state.append(ave_state)
@@ -226,6 +247,33 @@ class ipf:
             fault_para[i] = f
             self.para.append(fault_para)
 
+    def pf_identify_fault_para(self, window=2):
+        i =  self.detect_para_fault()
+        self.para_fault_id.append(i)
+        window_len = int(window/self.hsw.step_len)
+        if len(self.para_fault_id)>window_len:
+            fault_rate = np.sum(np.array(self.para_fault_id[-window_len:])!=0)/window_len
+        else:
+            fault_rate = 0
+        if i==0 or fault_rate<0.95 or abs(self.t-self.latest_sp)<3:
+            self.para.append(self.fault_para)
+        else:
+            i -= 1
+            self.N = self.Nmax
+            particles = self.tracjectory[-1]
+            fault_para = np.sum([p.weight*p.para for p in particles], 0)
+            if np.sum(self.fault_para_flag)==0:
+                self.fault_para_flag[:] = 0
+                self.fault_para_flag[i] = 1
+                particles = resample(particles, self.Nmax)
+                for p in particles:
+                    magnitude = np.random.uniform(0.05, 0.5)
+                    init_para = np.zeros(len(self.hsw.para_faults()))
+                    init_para[i] = magnitude
+                    p.set_para(init_para)
+                self.tracjectory[-1] = particles
+            self.para.append(fault_para)
+
     def process_fault(self, res):
         if self.stop_fault_process:
             self.para_fault_id.append(self.para_fault_id[-1])
@@ -242,7 +290,9 @@ class ipf:
             self.Z.append(z)
             self.check_Z()
         elif self.filter_mode=='pf':
-            pass
+            self.step_isolator(res)
+            self.pf_identify_fault_para()
+            self.estimate_fault_paras()
         else:
             raise RuntimeError('unknown filter mode.')
 
@@ -278,6 +328,7 @@ class ipf:
         msg = 'Tracking hybrid states...'
         self.log_msg(msg)
         self.mode0, self.state_mu0, self.state_sigma0, self.obs, self.N = mode, state_mu, state_sigma, obs, N
+        self.Nmin, self.Nmax = N, int(2*N)
         length = len(obs)
         self.estimate_mode()
         with progressbar.ProgressBar(max_value=length*self.hsw.step_len, redirect_stdout=True) as bar:
