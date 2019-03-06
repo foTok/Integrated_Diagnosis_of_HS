@@ -22,6 +22,7 @@ from utilities import normalize
 from utilities import resample
 from utilities import particle
 from utilities import hs_system_wrapper
+from utilities import Z_test
 
 class ipf:
     def __init__(self, hs, state_sigma, obs_sigma, conf=chi2_confidence):
@@ -49,6 +50,14 @@ class ipf:
         self.latest_sp = 0 # latest switch point
         self.stop_fault_process = False
         self.fault_time = 0
+        self.Z = []
+        self.filter_mode = 'ann' # {'ann', 'Z', 'pf'}
+                                 # ann: default mode, all diagnosis processes are accomplished by ann.
+                                 # Z: detect mode by ann but detect fault by Z-test. No fault identification after that.
+                                 # pf: use ann to detect mode and fault, but employ pf to identify fault.
+
+    def set_filter_mode(self, mode):
+        self.filter_mode = mode
 
     def set_output_names(self, names):
         self.output_names = names
@@ -100,7 +109,8 @@ class ipf:
         if self.t - 2*verify_window - switch_window < self.latest_sp:
             return
         window_len = int(verify_window / self.hsw.step_len)
-        if (np.array(self.para_fault_id[-2*window_len:])==0).any():
+        fault_rate = np.sum(np.array(self.para_fault_id[-2*window_len:])!=0)/(2*window_len)
+        if fault_rate < 0.95:
             return
         para1 = np.array(self.para[-window_len:])
         para2 = np.array(self.para[-2*window_len:-window_len])
@@ -154,9 +164,12 @@ class ipf:
         p.set_weigth(p.weight*Pobs)
         return p, res
 
-    def step_diagnoser(self, n_res):
+    def step_isolator(self, n_res):
         res = n_res * self.hsw.obs_sigma / self.obs_scale
         self.pf_isolator.step(res)
+
+    def step_identifier(self, n_res):
+        res = n_res * self.hsw.obs_sigma / self.obs_scale
         for identifier in self.pf_identifier:
             identifier.step(res)
 
@@ -197,7 +210,7 @@ class ipf:
         '''
         i: the returned value of detect_para_fault
         '''
-        i =  self.detect_para_fault()
+        i =  self.detect_para_fault() if abs(self.t - self.latest_sp)>3 else 0
         self.para_fault_id.append(i)
         if i==0:
             self.para.append(self.fault_para)
@@ -214,9 +227,20 @@ class ipf:
             self.para_fault_id.append(self.para_fault_id[-1])
             self.para.append(self.fault_para)
             return
-        self.step_diagnoser(res)
-        self.identify_fault_para()
-        self.estimate_fault_paras()
+        if self.filter_mode=='ann':
+            self.step_isolator(res)
+            self.step_identifier(res)
+            self.identify_fault_para()
+            self.estimate_fault_paras()
+        elif self.filter_mode=='Z':
+            z = Z_test(res=self.res, window1=1000, window2=100)
+            z = z if abs(self.t - self.latest_sp)>3 else (np.zeros(len(z)) if not isinstance(z, int) else 0)
+            self.Z.append(z)
+            self.check_Z()
+        elif self.filter_mode=='pf':
+            pass
+        else:
+            raise RuntimeError('unknown filter mode.')
 
     def last_particles(self):
         particles = self.tracjectory[-1] if self.tracjectory else self.init_particles()
@@ -232,6 +256,19 @@ class ipf:
                (np.array(para_fault_id[i:i+window_len2])!=0).all():
                return (i+1)*self.hsw.step_len
         return 0
+
+    def check_Z(self, window=2):
+        if self.fault_time>0:
+            return
+        window_len = int(window/self.hsw.step_len)
+        if len(self.Z)<=window_len:
+            return
+        Z = np.array(self.Z[-window_len:])
+        Z = np.mean(Z!=0, 0)
+        if (Z>0.95).any():
+            self.fault_time = self.t - window
+            msg = 'A fault occurred at {}s.'.format(round(self.fault_time, 2))
+            self.log_msg(msg)
 
     def track(self, mode, state_mu, state_sigma, obs, N):
         msg = 'Tracking hybrid states...'
@@ -269,15 +306,26 @@ class ipf:
         self.hsw.plot_res(res, file_name)
 
     def plot_para(self, file_name=None):
+        if not self.para:
+            return
         para = np.array(self.para)
         window_smooth(para, 100, 500, 100)
         self.hsw.plot_paras(para, file_name)
 
+    
+    def plot_Z(self, file_name=None):
+        if not self.Z:
+            return
+        Z = np.array(self.Z)
+        self.hsw.plot_Z(Z, file_name)
+
     def plot_para_fault(self):
+        if not self.para_fault_id:
+            return
         x = np.arange(len(self.para_fault_id))*self.hsw.step_len
         pf = np.array(self.para_fault_id)
-        window_smooth(pf, 100, 500, 100)
-        pf = smooth(pf, 50)
+        # window_smooth(pf, 100, 500, 100)
+        # pf = smooth(pf, 50)
         plt.plot(x, pf)
         plt.show()
 

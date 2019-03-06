@@ -3,6 +3,7 @@ Simulate RO system.
 '''
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 from utilities import add_noise
 from utilities import dis_sample
 
@@ -257,28 +258,40 @@ class RO:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
         plt.close()
 
-    def plot_res(self, data, file_name=None): # important interface
+    def plot_res(self, data, file_name=None, conf=0.99): # important interface
+        thresh = norm.ppf(1-(1-conf)/2)
+        linewidth = 0.5
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Residuals')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len
         # 0
-        ax_lst[0, 0].plot(x, data[:, 0])
+        ax_lst[0, 0].plot(x, data[:, 0], linewidth=linewidth)
         ax_lst[0, 0].set_ylabel('r1')
+        ax_lst[0, 0].axhline(thresh,color='r',ls='--')
+        ax_lst[0, 0].axhline(-thresh,color='r',ls='--')
         plt.setp(ax_lst[0, 0].get_xticklabels(), visible=False)
         # 1
-        ax_lst[1, 0].plot(x, data[:, 1])
+        ax_lst[1, 0].plot(x, data[:, 1], linewidth=linewidth)
         ax_lst[1, 0].set_ylabel('r2')
+        ax_lst[1, 0].axhline(thresh,color='r',ls='--')
+        ax_lst[1, 0].axhline(-thresh,color='r',ls='--')
         plt.setp(ax_lst[1, 0].get_xticklabels(), visible=False)
         # 2
-        ax_lst[2, 0].plot(x, data[:, 2])
+        ax_lst[2, 0].plot(x, data[:, 2], linewidth=linewidth)
+        ax_lst[2, 0].axhline(thresh,color='r',ls='--')
+        ax_lst[2, 0].axhline(-thresh,color='r',ls='--')
         ax_lst[2, 0].set_xlabel('Time/s')
         ax_lst[2, 0].set_ylabel('r3')
         # 3
-        ax_lst[0, 1].plot(x, data[:, 3])
+        ax_lst[0, 1].plot(x, data[:, 3], linewidth=linewidth)
+        ax_lst[0, 1].axhline(thresh,color='r',ls='--')
+        ax_lst[0, 1].axhline(-thresh,color='r',ls='--')
         ax_lst[0, 1].set_ylabel('r4')
         plt.setp(ax_lst[0, 1].get_xticklabels(), visible=False)
         # 4
-        ax_lst[1, 1].plot(x, data[:, 4])
+        ax_lst[1, 1].plot(x, data[:, 4], linewidth=linewidth)
+        ax_lst[1, 1].axhline(thresh,color='r',ls='--')
+        ax_lst[1, 1].axhline(-thresh,color='r',ls='--')
         ax_lst[1, 1].set_ylabel('r5')
         ax_lst[1, 1].set_xlabel('Time/s')
         # 5
@@ -290,7 +303,7 @@ class RO:
             plt.savefig(file_name if file_name.endswith('.svg') else (file_name+'.svg'), format='svg')
         plt.close()
 
-    def plot_Z(self, data, file_name): # important interface
+    def plot_Z(self, data, file_name=None): # important interface
         fig, ax_lst = plt.subplots(3, 2)  # A figure with a 3x2 grid of Axes
         fig.suptitle('Z values')  # Add a title so we know which it is
         x = np.arange(len(data))*self.step_len

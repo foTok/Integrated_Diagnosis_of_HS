@@ -22,6 +22,7 @@ parser.add_argument('-o', '--output', type=str, help='output directory')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n', '--num', type=int, help='particle number')
 parser.add_argument('-s', '--start', type=int, help='start index')
+parser.add_argument('-m', '--mode', type=str, help='filter mode')
 args = parser.parse_args()
 
 # settings
@@ -33,6 +34,7 @@ repeat = 10 if args.repeat is None else args.repeat
 N = 50 if args.num is None else args.num
 test = 'test' if args.test is None else args.test
 start = 0 if args.start is None else args.start
+filter_mode = 'ann' if args.mode is None else args.mode
 mode_detector = 'model/mode_detector'
 pf_isolator = 'model/pf_isolator'
 f_f_identifier = 'model/f_f_identifier'
@@ -68,6 +70,7 @@ for k in range(repeat):
         with torch.no_grad():
             ro = RO(si)
             tracker = ipf(ro, state_sigma, obs_sigma)
+            tracker.set_filter_mode(filter_mode)
             tracker.load_mode_detector(mode_detector)
             tracker.load_pf_isolator(pf_isolator)
             tracker.load_identifier([f_f_identifier, f_r_identifier, f_m_identifier])
@@ -78,5 +81,9 @@ for k in range(repeat):
             tracker.plot_mode(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
             tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
             tracker.plot_para(file_name=os.path.join(fig_path, 'paras{}'.format(k)))
+            tracker.plot_Z(file_name=os.path.join(fig_path, 'Z{}'.format(k)))
+            tracker.plot_Z()
+            tracker.plot_res()
+            tracker.plot_para_fault()
             tracker.evaluate_modes(ref_mode)
             tracker.evaluate_states(ref_state)
