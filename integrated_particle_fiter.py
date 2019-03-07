@@ -116,7 +116,7 @@ class ipf:
         mode = self.mode_detector(obs)
         mode = mode.detach().numpy()[0]
         mode = np.argmax(mode, axis=1)
-        mode[:50] = self.mode0
+        mode[:100] = self.mode0
         mode = smooth(mode, 50)
         self.mode = mode
 
@@ -174,6 +174,7 @@ class ipf:
             self.stop_fault_process = True
             self.fault_para_flag[:] = 0.0
             self.N = self.Nmin
+            self.particle_para_estimation = False
             msg = 'A fault occurred at {}s, estimated its magnitude at {}s, fault parameters are mu={}, sigma={}.'\
                   .format(round(self.fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
             self.log_msg(msg)
@@ -371,7 +372,6 @@ class ipf:
                 self.step(particles, obs, mode)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                 i += 1
-        print('DONE')
 
     def fault_info(self):
         return self.fault_time, self.fault_para
