@@ -355,11 +355,11 @@ class ipf:
             msg = 'A fault occurred at {}s.'.format(round(self.fault_time, 2))
             self.log_msg(msg)
 
-    def track(self, mode, state_mu, state_sigma, obs, N):
+    def track(self, mode, state_mu, state_sigma, obs, N, Nmax):
         msg = 'Tracking hybrid states...'
         self.log_msg(msg)
         self.mode0, self.state_mu0, self.state_sigma0, self.obs, self.N = mode, state_mu, state_sigma, obs, N
-        self.Nmin, self.Nmax = N, int(2*N)
+        self.Nmin, self.Nmax = N, Nmax
         length = len(obs)
         self.estimate_mode()
         with progressbar.ProgressBar(max_value=length*self.hsw.step_len, redirect_stdout=True) as bar:

@@ -21,6 +21,7 @@ parser.add_argument('-t', '--test', type=str, help='test set name')
 parser.add_argument('-o', '--output', type=str, help='output directory')
 parser.add_argument('-r', '--repeat', type=int, help='repeat times')
 parser.add_argument('-n', '--num', type=int, help='particle number')
+parser.add_argument('-n1', '--num1', type=int, help='particle number for parameter estimation')
 parser.add_argument('-s', '--start', type=int, help='start index')
 parser.add_argument('-m', '--mode', type=str, help='filter mode')
 parser.add_argument('-c', '--conf', type=float, help='obs confidence')
@@ -33,6 +34,7 @@ obs_snr = 20
 obs_scale =np.array([1, 1, 1, 10, 10e8])
 repeat = 10 if args.repeat is None else args.repeat
 N = 50 if args.num is None else args.num
+Nmax = 100 if args.num1 is None else args.num1
 test = 'test' if args.test is None else args.test
 start = 0 if args.start is None else args.start
 filter_mode = 'ann' if args.mode is None else args.mode
@@ -78,8 +80,9 @@ for k in range(repeat):
             tracker.load_identifier([f_f_identifier, f_r_identifier, f_m_identifier])
             tracker.set_scale(obs_scale)
             tracker.log_msg(msg)
-            tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N)
-            # tracker.track(mode=0, state_mu=np.array([ 1.35286541e-02,  9.98226267e-01,  8.08528738e-01,  5.28445410e-02,  -4.73411158e+03,  6.90904974e+02]), state_sigma=np.zeros(6), obs=output_with_noise[9900:15000], N=N)
+            tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=N, Nmax=Nmax)
+            # tracker.track(mode=0, state_mu=np.array([ 1.35286541e-02,  9.98226267e-01,  8.08528738e-01,  5.28445410e-02,  -4.73411158e+03,  6.90904974e+02]), \
+            #               state_sigma=np.zeros(6), obs=output_with_noise[9900:15000], N=N, Nmax=Nmax)
             tracker.plot_state(file_name=os.path.join(fig_path, 'states{}'.format(k)))
             tracker.plot_mode(file_name=os.path.join(fig_path, 'modes{}'.format(k)))
             tracker.plot_res(file_name=os.path.join(fig_path, 'res{}'.format(k)))
