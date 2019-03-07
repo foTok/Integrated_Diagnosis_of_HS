@@ -41,8 +41,6 @@ class ipf:
         self.obs_scale = np.ones(len(self.hsw.obs_sigma))
         self.obs = None
         self.fault_para = np.zeros(len(self.hsw.para_faults()))
-        self.fault_para_sigma = np.ones(len(self.hsw.para_faults()))*0.01
-        self.fault_para_flag = np.zeros(len(self.hsw.para_faults()))
         self.tracjectory = []
         self.res = []
         self.mode = None
@@ -53,13 +51,19 @@ class ipf:
         self.para_fault_id = []
         self.latest_sp = 0 # latest switch point
         self.stop_fault_process = False
-        self.fault_time = 0
+        self.fault_time = -float('inf')
         self.Z = []
         self.obs_conf = 0.05
         self.filter_mode = 'ann' # {'ann', 'Z', 'pf'}
                                  # ann: default mode, all diagnosis processes are accomplished by ann.
                                  # Z: detect mode by ann but detect fault by Z-test. No fault identification after that.
                                  # pf: use ann to detect mode and fault, but employ pf to identify fault.
+        # Used by particle filter based parameter estimation.
+        self.fault_para_sigma = np.ones(len(self.hsw.para_faults()))*0.01
+        self.fault_para_flag = np.zeros(len(self.hsw.para_faults()))
+        self.last_likelihood = 1
+        self.particle_para_estimation = False
+        self.detect_time = -float('inf')
 
     def set_filter_mode(self, mode):
         self.filter_mode = mode
@@ -121,12 +125,8 @@ class ipf:
             return
         window_len = int(verify_window / self.hsw.step_len)
         fault_rate = np.sum(np.array(self.para_fault_id[-2*window_len:])!=0)/(2*window_len)
-        if self.filter_mode=='pf':
-            if (self.fault_para_flag==0).all():
-                return
-        else:
-            if fault_rate < 0.95:
-                return
+        if fault_rate < 0.95:
+            return
         para1 = np.array(self.para[-window_len:])
         para2 = np.array(self.para[-2*window_len:-window_len])
         # add a small number to the first time step to avoid numberic problems.
@@ -143,9 +143,37 @@ class ipf:
             self.fault_para = para
             self.stop_fault_process = True
             self.fault_time = self.find_fault_time()
-            if self.filter_mode=='pf':
-                self.fault_para_flag[:] = 0.0
-                self.N = self.Nmax
+            msg = 'A fault occurred at {}s, estimated its magnitude at {}s, fault parameters are mu={}, sigma={}.'\
+                  .format(round(self.fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
+            self.log_msg(msg)
+
+    def pf_estimate_fault_paras(self, switch_window=1, verify_window=2, p_thresh=0.05):
+        if self.t - 2*verify_window - switch_window < self.latest_sp:
+            return
+        if self.t - self.detect_time < 2*verify_window:
+            return
+        if (self.fault_para_flag==0).all():
+            return
+        if self.last_likelihood < 0.95:
+            return
+        window_len = int(verify_window / self.hsw.step_len)
+        para1 = np.array(self.para[-window_len:])
+        para2 = np.array(self.para[-2*window_len:-window_len])
+        # add a small number to the first time step to avoid numberic problems.
+        para1[0,:] = para1[0,:] + 1e-4
+        para2[0,:] = para2[0,:] + 1e-4
+        _, p_values = stats.f_oneway(para1, para2)
+        where_are_nan = np.isnan(p_values)
+        p_values[where_are_nan] = 1
+        if (p_values > p_thresh).all():
+            para_2w = np.array(self.para[-2*window_len:])
+            para = np.mean(para_2w, 0)
+            para = np.array([(p if p>0.01 else 0.0) for p in para])
+            para_sigma = np.std(para_2w, 0)*(para!=0)/np.sqrt(2*window_len)
+            self.fault_para = para
+            self.stop_fault_process = True
+            self.fault_para_flag[:] = 0.0
+            self.N = self.Nmin
             msg = 'A fault occurred at {}s, estimated its magnitude at {}s, fault parameters are mu={}, sigma={}.'\
                   .format(round(self.fault_time, 2), round(self.t, 2), np.round(para, 4), np.round(para_sigma, 4))
             self.log_msg(msg)
@@ -211,6 +239,7 @@ class ipf:
             p, r = self.step_particle(ptc, obs, mode_i0, mode)
             particles_ip1.append(p)
             res += r
+        self.last_likelihood = sum([ptc.weight for ptc in particles_ip1])
         normalize(particles_ip1, obs_conf)
         re_particles_ip1 = resample(particles_ip1, self.N)
         ave_state = self.ave_state(re_particles_ip1)
@@ -247,32 +276,33 @@ class ipf:
             fault_para[i] = f
             self.para.append(fault_para)
 
-    def pf_identify_fault_para(self, window=2):
+    def pf_identify_fault_para(self, window=2.0):
         i =  self.detect_para_fault()
         self.para_fault_id.append(i)
         window_len = int(window/self.hsw.step_len)
-        if len(self.para_fault_id)>window_len:
-            fault_rate = np.sum(np.array(self.para_fault_id[-window_len:])!=0)/window_len
-        else:
-            fault_rate = 0
-        if i==0 or fault_rate<0.95 or abs(self.t-self.latest_sp)<3:
-            self.para.append(self.fault_para)
-        else:
+        if i!=0 and (np.array(self.para_fault_id[-window_len:])!=0).all() and \
+           abs(self.t-self.latest_sp)>3 and not self.particle_para_estimation:
+            self.particle_para_estimation = True
             i -= 1
             self.N = self.Nmax
             particles = self.tracjectory[-1]
+            self.detect_time = self.t # detect time
+            self.fault_time = self.t - window
+            self.fault_para_flag[i] = 1
+            particles = resample(particles, self.Nmax)
+            for p in particles:
+                magnitude = np.random.uniform(0.05, 0.5)
+                init_para = np.zeros(len(self.hsw.para_faults()))
+                init_para[i] = magnitude
+                p.set_para(init_para)
+            self.tracjectory[-1] = particles
+
+        if not self.particle_para_estimation:
+            fault_para = self.fault_para
+        else:
+            particles = self.tracjectory[-1]
             fault_para = np.sum([p.weight*p.para for p in particles], 0)
-            if np.sum(self.fault_para_flag)==0:
-                self.fault_para_flag[:] = 0
-                self.fault_para_flag[i] = 1
-                particles = resample(particles, self.Nmax)
-                for p in particles:
-                    magnitude = np.random.uniform(0.05, 0.5)
-                    init_para = np.zeros(len(self.hsw.para_faults()))
-                    init_para[i] = magnitude
-                    p.set_para(init_para)
-                self.tracjectory[-1] = particles
-            self.para.append(fault_para)
+        self.para.append(fault_para)
 
     def process_fault(self, res):
         if self.stop_fault_process:
@@ -292,7 +322,7 @@ class ipf:
         elif self.filter_mode=='pf':
             self.step_isolator(res)
             self.pf_identify_fault_para()
-            self.estimate_fault_paras()
+            self.pf_estimate_fault_paras()
         else:
             raise RuntimeError('unknown filter mode.')
 
@@ -341,6 +371,7 @@ class ipf:
                 self.step(particles, obs, mode)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                 i += 1
+        print('DONE')
 
     def fault_info(self):
         return self.fault_time, self.fault_para
