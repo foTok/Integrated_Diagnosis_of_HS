@@ -61,7 +61,7 @@ args = parser.parse_args()
 res = False if args.res is None else True
 model_name = args.model_name
 start = 0 if args.start is None else args.start
-log_path = 'log/eval/{}'.format(args.output)
+log_path = 'log/RO/{}'.format(args.output)
 
 # set log path
 if not os.path.exists(log_path):
@@ -100,27 +100,28 @@ for i in range(start, len(data_mana.data)):
 
     output_with_noise = data_mana.select_outputs(i, obs_snr, norm=obs_scale)
     output_with_noise = output_with_noise - output_n if res else output_with_noise
-    # time, obs = output_with_noise.shape
-    # output_with_noise = output_with_noise.reshape(1, time, obs)
-    # output_with_noise = np2tensor(output_with_noise, use_cuda)
-
 
     ref_mode = data_mana.select_modes(i)
     ref_state = data_mana.select_states(i)
 
     with torch.no_grad():
-        # y_head = diagnoser(output_with_noise)
-        # _, time, feature = y_head.size()
-        # y_head = y_head.detach().numpy().reshape(-1, feature)
-        ann_steper = ann_step(diagnoser)
-        y_head = []
-        for obs in output_with_noise:
-            y = ann_steper.step(obs)
-            y_head.append(y)
-    y_head = np.array(y_head)
+        time, obs = output_with_noise.shape
+        output_with_noise = output_with_noise.reshape(1, time, obs)
+        output_with_noise = np2tensor(output_with_noise, use_cuda)
+        y_head = diagnoser(output_with_noise)
+        _, time, feature = y_head.size()
+        y_head = y_head.detach().numpy().reshape(-1, feature)
+        ref_mode = ref_mode%3
+        # ann_steper = ann_step(diagnoser)
+        # y_head = []
+        # for obs in output_with_noise:
+        #     y = ann_steper.step(obs)
+        #     y_head.append(y)
+        # y_head = np.array(y_head)
     
     if args.type=='detector':
         mode = np.argmax(y_head, axis=1)
+        evaluate_modes(mode, ref_mode)
         ro.plot_modes(mode, file_name=os.path.join(log_path, 'modes_{}_{}'.format(args.data_set, i)))
     elif args.type=='isolator':
         x = np.arange(len(y_head))*si
