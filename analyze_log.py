@@ -122,13 +122,19 @@ def analyze_info(log_file_name, save_file_name):
             elif 'occurred' in line: # detect time and estimated magnitude
                 line = line.split()
                 detect_delay = float(line[4][:-2]) - fault_time
-                estimated_magnitude = float(line[13][4:])+float(line[14])+float(line[15])
+                if line[16]=='],':
+                    estimated_magnitude = float(line[13][4:])+float(line[14])+float(line[15])
+                else:
+                    estimated_magnitude = float(line[13][4:])+float(line[14])+float(line[15][:-2])
             elif 'accuracy' in line: # mode accuracy
                 line = line.split()
                 mode_accuracy = float(line[-1][:-1])
             elif 'n_mu' in line: # state error
                 line = line.split()
-                state_error = (float(line[4][1:])+float(line[5])+float(line[6])+float(line[7])+float(line[8])+float(line[9][:2]))/6
+                if line[4]=='[':
+                    state_error = (float(line[5])+float(line[6])+float(line[7])+float(line[8])+float(line[9])+float(line[10][:2]))/6
+                else:
+                    state_error = (float(line[4][1:])+float(line[5])+float(line[6])+float(line[7])+float(line[8])+float(line[9][:2]))/6
                 the_info.add(fault_type, fault_time, fault_magnitude, \
                              detect_delay, estimated_magnitude, mode_accuracy, state_error)
             else:
