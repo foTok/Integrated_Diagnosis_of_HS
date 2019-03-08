@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--index', type=int, help='choose the index in the data set')
     parser.add_argument('-t', '--test', type=str, help='test_set')
+    parser.add_argument('-b', '--blend', type=str, choices=['true', 'false'], help='if blend all particles')
     args = parser.parse_args()
     mpl.rc('font',family='Times New Roman')
     # read parameters from environment
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     process_snr = 45
     obs_snr = 20
     test = 'test' if args.test is None else args.test
+    b = True if args.blend=='true' else False
 
     data_cfg = '{}/RO.cfg'.format(test)
     data_mana = data_manager(data_cfg, si)
@@ -43,7 +45,7 @@ if __name__ == '__main__':
     ro = RO(si)
     tracker = bpf(ro, state_sigma, obs_sigma)
     tracker.set_mode_num(3)
-    # tracker.set_blend(True)
+    tracker.set_blend(b)
     tracker.log_msg(msg)
     tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=50)
     tracker.plot_state()

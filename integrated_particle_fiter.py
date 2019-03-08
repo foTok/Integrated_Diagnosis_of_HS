@@ -352,7 +352,8 @@ class ipf:
         Z = np.mean(Z!=0, 0)
         if (Z>0.95).any():
             self.fault_time = self.t - window
-            msg = 'A fault occurred at {}s.'.format(round(self.fault_time, 2))
+            msg = 'A fault occurred at {}s, estimated its magnitude at 100s, fault parameters are mu=[0 0 0 ], sigma=[1 1 1 ].'\
+                  .format(round(self.fault_time, 2)) # add some extra insignificant txt so that we can process log script conveniently.
             self.log_msg(msg)
 
     def track(self, mode, state_mu, state_sigma, obs, N, Nmax):
