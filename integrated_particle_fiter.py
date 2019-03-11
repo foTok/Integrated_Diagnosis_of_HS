@@ -64,6 +64,7 @@ class ipf:
         self.last_likelihood = 1
         self.particle_para_estimation = False
         self.detect_time = -float('inf')
+        self.break_flag = False # if break_flag is True, stop estimate immediately.
 
     def set_filter_mode(self, mode):
         self.filter_mode = mode
@@ -342,19 +343,25 @@ class ipf:
                return (i+1)*self.hsw.step_len
         return 0
 
-    def check_Z(self, window=2):
+    def check_Z(self, window1=1, window2=4):
         if self.fault_time>0:
             return
-        window_len = int(window/self.hsw.step_len)
-        if len(self.Z)<=window_len:
+        window_len1 = int(window1/self.hsw.step_len)
+        window_len2 = int(window2/self.hsw.step_len)
+        if len(self.Z)<=(window_len1+window_len2):
             return
-        Z = np.array(self.Z[-window_len:])
-        Z = np.mean(Z!=0, 0)
-        if (Z>0.95).any():
-            self.fault_time = self.t - window
+        Z = np.array(self.Z)
+        Z = smooth(Z, 100)
+        Z1 = np.array(Z[-(window_len1+window_len2):-window_len2])
+        Z2 = np.array(Z[-window_len2:])
+        Z1 = np.mean(Z1!=0, 0)
+        Z2 = np.mean(Z2!=0, 0)
+        if (Z1==0).all() and (Z2==1).any():
+            self.fault_time = self.t - window2
             msg = 'A fault occurred at {}s, estimated its magnitude at 100s, fault parameters are mu=[0 0 0 ], sigma=[1 1 1 ].'\
                   .format(round(self.fault_time, 2)) # add some extra insignificant txt so that we can process log script conveniently.
             self.log_msg(msg)
+            self.break_flag = True
 
     def track(self, mode, state_mu, state_sigma, obs, N, Nmax):
         msg = 'Tracking hybrid states...'
@@ -373,6 +380,8 @@ class ipf:
                 self.step(particles, obs, mode)
                 bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                 i += 1
+                if self.break_flag:
+                    break
 
     def fault_info(self):
         return self.fault_time, self.fault_para
@@ -433,6 +442,7 @@ class ipf:
 
     def evaluate_states(self, ref_states):
         est_states = np.array(self.state)
+        ref_states = ref_states[:len(est_states),:]
         # abs error 
         res = est_states - ref_states
         mu = np.mean(res, 0)

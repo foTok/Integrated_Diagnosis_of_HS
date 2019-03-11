@@ -108,12 +108,12 @@ def analyze_info(log_file_name, save_file_name):
     with open(log_file_name, 'r') as f:
         lines = f.readlines()
         fault_type, fault_time, fault_magnitude, detect_delay, estimated_magnitude, mode_accuracy, state_error = \
-        None, None, None, None, None, None, None
+        None, 300, 0, 0, 0, None, None
         for line in lines:
             line=line.strip('\n')
             if line.endswith('***'): # reset line
                 fault_type, fault_time, fault_magnitude, detect_delay, estimated_magnitude, mode_accuracy, state_error = \
-                None, None, None, None, None, None, None
+                None, 300, 0, 0, 0, None, None
             elif line.endswith('s.'): # the line containing raw fault information
                 line = line.split()
                 fault_type = line[1]
