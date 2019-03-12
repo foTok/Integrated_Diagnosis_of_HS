@@ -117,8 +117,8 @@ def analyze_info(log_file_name, save_file_name):
             elif line.endswith('s.'): # the line containing raw fault information
                 line = line.split()
                 fault_type = line[1]
-                fault_magnitude = float(line[4])
-                fault_time = float(line[-1][:-2])
+                fault_magnitude = float(line[4]) if line[4]!='None' else 0
+                fault_time = float(line[-1][:-2]) if line[-1][:-2] != 'None' else 0
             elif 'occurred' in line: # detect time and estimated magnitude
                 line = line.split()
                 detect_delay = float(line[4][:-2]) - fault_time

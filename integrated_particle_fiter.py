@@ -343,7 +343,7 @@ class ipf:
                return (i+1)*self.hsw.step_len
         return 0
 
-    def check_Z(self, window1=1, window2=4):
+    def check_Z(self, window1=1, window2=2):
         if self.fault_time>0:
             return
         window_len1 = int(window1/self.hsw.step_len)
