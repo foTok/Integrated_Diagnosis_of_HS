@@ -123,7 +123,7 @@ class bpf: # bank particle filter
 
     def plot_mode(self, file_name=None):
         data = np.array(self.mode)
-        # data = smooth(data, 50)
+        data = smooth(data, 50)
         self.hsw.plot_modes(data, file_name)
 
     def log_msg(self, msg):
