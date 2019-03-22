@@ -130,11 +130,12 @@ def analyze_info(log_file_name, save_file_name):
                 line = line.split()
                 mode_accuracy = float(line[-1][:-1])
             elif 'n_mu' in line: # state error
+                line = line.split(',')[0]
+                line = line.split('[')[1]
+                line = line.split(']')[0]
                 line = line.split()
-                if line[4]=='[':
-                    state_error = (float(line[5])+float(line[6])+float(line[7])+float(line[8])+float(line[9])+float(line[10][:2]))/6
-                else:
-                    state_error = (float(line[4][1:])+float(line[5])+float(line[6])+float(line[7])+float(line[8])+float(line[9][:2]))/6
+                # state_error = (float(line[0])+float(line[1])+float(line[2])+float(line[3])+float(line[4])+float(line[5]))/6
+                state_error = (float(line[0])+float(line[1])+float(line[2])+float(line[3])+float(line[4]))/5
                 the_info.add(fault_type, fault_time, fault_magnitude, \
                              detect_delay, estimated_magnitude, mode_accuracy, state_error)
             else:

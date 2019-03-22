@@ -44,6 +44,6 @@ if __name__ == '__main__':
     tracker = bpf(ro, state_sigma, obs_sigma)
     tracker.set_mode_num(3)
     tracker.log_msg(msg)
-    tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=50)
+    tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=17)
     tracker.plot_state()
     tracker.plot_mode()
