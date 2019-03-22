@@ -4,6 +4,7 @@ import numpy as np
 from collections import Counter
 from utilities import hs_system_wrapper
 from utilities import exp_confidence
+from utilities import chi2_confidence
 from utilities import hybrid_particle
 from utilities import normalize
 from utilities import resample
@@ -25,10 +26,7 @@ class bpf: # bank particle filter
         self.state = []
         self.t = 0 # time stamp
         self.mode_num = 0
-        self.blend_particle = False
-
-    def set_blend(self, blend):
-        self.blend_particle = blend
+        self.mode_particle_dict = {}
 
     def set_mode_num(self, mode_num):
         self.mode_num = mode_num
@@ -37,22 +35,20 @@ class bpf: # bank particle filter
         state_mu = self.state_mu0
         state_sigma = self.state_sigma0
         N = self.N
-        particle = []
         disturbance = np.random.randn(N, len(state_mu))*state_sigma
-        for i in range(N):
-            state = state_mu + disturbance[i]
-            p = hybrid_particle(self.mode0, state, 1/N)
-            particle.append(p)
-        return particle
+        for m in range(self.mode_num):
+            self.mode_particle_dict[m] = []
+            for i in range(N):
+                state = state_mu + disturbance[i]
+                p = hybrid_particle(m, state, 1/N)
+                self.mode_particle_dict[m].append(p)
 
-    def last_particle(self):
-        particle = self.tracjectory[-1] if self.tracjectory else self.init_particle()
-        return particle
-
-    def step_particle(self, p, obs, mode_i0, mode):
+    def step_particle(self, p, obs, mode_i0):
         p = p.clone()
+        mode = p.mode
+        state = p.state
         # predict state
-        state = self.hsw.reset_state(mode_i0, mode, p.state)
+        state = self.hsw.reset_state(mode_i0, mode, state)
         state = self.hsw.state_step(mode, state, self.fault_para)
         # add process noise
         process_noise = np.random.standard_normal(len(state))*self.hsw.state_sigma
@@ -68,43 +64,56 @@ class bpf: # bank particle filter
         p.set_mode(mode)
         return p
 
-    def step(self, particle, obs):
+    def step(self, obs):
         self.t += self.hsw.step_len
-        mode_i0 = self.mode0 if not self.state else self.mode[len(self.state)-1]
+        mode_i0 = self.mode0 if not self.state else self.mode[len(self.state)-1] # lastest mode
         particle_ip1 = {}
-        for ptc in particle:
-            for mode in range(self.mode_num):
-                p = self.step_particle(ptc, obs, mode_i0, mode)
-                if mode not in particle_ip1:
-                    particle_ip1[mode] = []
-                particle_ip1[mode].append(p)
-        if self.blend_particle:
-            particle_ip1 = [p for m in particle_ip1 for p in particle_ip1[m]]
-        else:
-            weight = [sum([p.weight for p in particle_ip1[m]]) for m in particle_ip1]
-            m = weight.index(max(weight))
-            particle_ip1 = particle_ip1[m]
-        normalize(particle_ip1)
-        re_particle_ip1 = resample(particle_ip1, self.N)
-        ave_state = sum([p.weight*p.state for p in re_particle_ip1])
-        max_mode = [p.mode for p in re_particle_ip1]
-        num_counter = Counter(max_mode)
-        max_mode = num_counter.most_common(1)[0][0]
-        self.tracjectory.append(re_particle_ip1)
+        for m in range(self.mode_num):
+            particle_ip1[m] = []
+            particle = self.mode_particle_dict[m]
+            for ptc in particle:
+                p = self.step_particle(ptc, obs, mode_i0)
+                particle_ip1[m].append(p)
+
+        weight = [sum([p.weight for p in particle_ip1[m]]) for m in particle_ip1]
+        weight = [w/sum(weight) for w in weight]
+        w_max = max(weight) # maximal weight
+        m_opt = weight.index(w_max) # optimal mode
+
+        new_particle_ip1 = {}
+        for m in range(self.mode_num):
+            if w_max/weight[m] > 1000:
+                copy_ptc = []
+                for p in particle_ip1[m_opt]:
+                    _p = p.clone()
+                    _p.mode = m
+                    copy_ptc.append(_p)
+                new_particle_ip1[m] = copy_ptc
+            else:
+                new_particle_ip1[m] = particle_ip1[m]
+        m_opt = m_opt if weight[m_opt]/weight[mode_i0]>1000 else mode_i0
+
+        for m in range(self.mode_num):
+            normalize(new_particle_ip1[m], 0.0001)
+            new_particle_ip1[m] = resample(new_particle_ip1[m])
+
+        ave_state = sum([p.weight*p.state for p in new_particle_ip1[m_opt]])
+        self.tracjectory.append(new_particle_ip1[m_opt])
         self.state.append(ave_state)
-        self.mode.append(max_mode)
+        self.mode.append(m_opt)
+        self.mode_particle_dict = new_particle_ip1
 
     def track(self, mode, state_mu, state_sigma, obs, N):
             msg = 'Tracking hybrid states...'
             self.log_msg(msg)
             self.mode0, self.state_mu0, self.state_sigma0, self.obs, self.N = mode, state_mu, state_sigma, obs, N
+            self.init_particle()
             length = len(obs)
             with progressbar.ProgressBar(max_value=length*self.hsw.step_len, redirect_stdout=True) as bar:
                 i = 0
                 while i < length:
                     obs = self.obs[i]
-                    particle = self.last_particle()
-                    self.step(particle, obs)
+                    self.step(obs)
                     bar.update(float('%.2f'%((i+1)*self.hsw.step_len)))
                     i += 1
 

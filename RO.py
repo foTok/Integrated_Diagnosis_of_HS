@@ -83,7 +83,10 @@ class RO:
 
     def reset_state(self, mode_i, mode_ip1, state_i):
         if (mode_i%3 != 0) and (mode_ip1%3 == 0):
-            state_i = state_i[:]
+            if isinstance(state_i, list):
+                state_i = state_i[:]
+            else: # np.array
+                state_i = state_i.copy()
             state_i[4], state_i[5] = 0, 0
         return state_i
 
