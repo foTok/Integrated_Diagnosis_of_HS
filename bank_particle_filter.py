@@ -80,13 +80,10 @@ class bpf: # bank particle filter
         weight = [w/sum(weight) for w in weight]
         w_max = max(weight) # maximal weight
         m_opt = weight.index(w_max) # optimal mode
-        m_opt = m_opt if weight[mode_i0]==0 or (weight[m_opt]/weight[mode_i0]>self.r) else mode_i0
-        w_opt = weight[m_opt]
 
         new_particle_ip1 = {}
-        
         for m in range(self.mode_num):
-            if weight[m]==0 or (w_opt/weight[m] > self.r):
+            if weight[m]==0 or (w_max/weight[m] > self.r):
                 copy_ptc = []
                 for p in particle_ip1[m_opt]:
                     _p = p.clone()
@@ -95,6 +92,7 @@ class bpf: # bank particle filter
                 new_particle_ip1[m] = copy_ptc
             else:
                 new_particle_ip1[m] = particle_ip1[m]
+        m_opt = m_opt if weight[mode_i0]==0 or (weight[m_opt]/weight[mode_i0]>self.r) else mode_i0
 
         for m in range(self.mode_num):
             normalize(new_particle_ip1[m], 0.0001)
