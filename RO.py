@@ -94,7 +94,7 @@ class RO:
         self.t += self.step_len
 
     def stochastic_mode_step(self, mode_i, state_i):
-        f = 0.01
+        f = 0.001
         n = 1 - 2*f
         if mode_i==0:
             return [n, f, f]
