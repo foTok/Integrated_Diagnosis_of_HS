@@ -8,6 +8,7 @@ import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from bank_particle_filter import bpf
+from imm_particle_filter import ipf
 from data_manager import data_manager
 from RO import RO
 from utilities import obtain_var
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     logging.basicConfig(filename='log\\log.txt', level=logging.INFO)
 
     ro = RO(si)
-    tracker = bpf(ro, state_sigma, obs_sigma)
+    tracker = ipf(ro, state_sigma, obs_sigma)
     tracker.set_mode_num(3)
     tracker.log_msg(msg)
     tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=17)
