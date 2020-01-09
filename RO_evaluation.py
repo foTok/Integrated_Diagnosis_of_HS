@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib as mpl
 from utilities import chi2_confidence
 from utilities import exp_confidence
-from integrated_particle_fiter import ipf
+from integrated_particle_filter import ipf
 from data_manager import data_manager
 from RO import RO
 from utilities import obtain_var

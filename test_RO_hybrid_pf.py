@@ -11,6 +11,9 @@ from hybrid_particle_filter import hpf
 from data_manager import data_manager
 from RO import RO
 from utilities import obtain_var
+from cycler import cycler
+
+mpl.rcParams['axes.prop_cycle'] = cycler(color='kbgrcmy')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

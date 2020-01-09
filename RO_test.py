@@ -6,10 +6,13 @@ import numpy as np
 import argparse
 import logging
 import matplotlib as mpl
-from integrated_particle_fiter import ipf
+from integrated_particle_filter import ipf
 from data_manager import data_manager
 from RO import RO
 from utilities import obtain_var
+from cycler import cycler
+
+mpl.rcParams['axes.prop_cycle'] = cycler(color='kbgrcmy')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -25,10 +28,10 @@ if __name__ == '__main__':
     obs_scale =np.array([1,1,1,10,10e9])
     test = 'test' if args.test is None else args.test
     mode_detector = 'model/mode_detector'
-    pf_isolator = 'model/pf_isolator_res'
-    f_f_identifier = 'model/f_f_identifier_res'
-    f_r_identifier = 'model/f_r_identifier_res'
-    f_m_identifier = 'model/f_m_identifier_res'
+    pf_isolator = 'model/pf_isolator'
+    f_f_identifier = 'model/f_f_identifier'
+    f_r_identifier = 'model/f_r_identifier'
+    f_m_identifier = 'model/f_m_identifier'
 
     data_cfg = '{}/RO.cfg'.format(test)
     data_mana = data_manager(data_cfg, si)
@@ -53,7 +56,7 @@ if __name__ == '__main__':
         tracker.load_identifier([f_f_identifier, f_r_identifier, f_m_identifier])
         tracker.set_scale(obs_scale)
         tracker.log_msg(msg)
-        tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=50)
+        tracker.track(mode=0, state_mu=np.zeros(6), state_sigma=np.zeros(6), obs=output_with_noise, N=50, Nmax=100)
         tracker.plot_state()
         tracker.plot_mode()
         tracker.plot_res()
